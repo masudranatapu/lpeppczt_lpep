@@ -1,0 +1,1 @@
+<input type="text" name="balance" value="{{ $balance }}" readonly class="form-control mt-3">

@@ -1,0 +1,199 @@
+#product-picture {
+    height: 60px;
+    width: 60px;
+    margin: auto;
+}
+
+#loder-gif {
+    margin: auto;
+    height: 60px;
+}
+
+#product-show-scroll {
+    /* height: 420px; */
+    /* overflow-y: scroll;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  overflow-x: hidden; */
+}
+
+#table-scroller {
+    height: 380px;
+    display: block;
+    width: 100%;
+    overflow: auto;
+
+}
+
+
+#table-scroller::-webkit-scrollbar {
+    width: 9px;
+}
+
+#table-scroller::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+#table-scroller::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 10px;
+    border: 2px solid transparent;
+
+}
+
+#table-scrollerr::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+    cursor: pointer;
+}
+
+.bg-gray {
+    color: #000;
+    background-color: #d2d6de !important;
+    border-radius: 3px;
+}
+
+.btn-increment {
+    display: inline-block;
+    padding: 0px 0px;
+    background: #00a65a;
+    width: 18px;
+    text-align: center;
+    cursor: pointer;
+    color: #fff;
+}
+
+.btn-decrement {
+    display: inline-block;
+    padding: 0px 0px;
+    background: #e91e63;
+    width: 18px;
+    text-align: center;
+    cursor: pointer;
+    color: #fff;
+}
+
+.input-quantity {
+    border: 0px;
+    width: 65px;
+    display: inline-block;
+    margin: 0;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.cart-info.quantity {
+    width: 104px;
+    border: #ccc 1px solid;
+    margin: auto;
+}
+
+.ui-menu-item-wrapper {
+    display: block;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+}
+
+.ui-state-active {
+    display: block;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+}
+
+.td-style {
+    padding: 4px 0px !important;
+    margin: 0px !important;
+}
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+footer {
+    z-index: 9999999;
+}
+
+
+
+
+/* ---------- custom added ----------  */
+
+
+.h-100 {
+    height: 100% !important;
+}
+
+#filter_product_list {
+    max-height: 450px;
+    overflow-y: scroll;
+}
+
+
+#filter_product_list::-webkit-scrollbar {
+    width: 8px;
+}
+
+#filter_product_list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+#filter_product_list::-webkit-scrollbar-thumb {
+    background-color: #28a745;
+    border-radius: 10px;
+    border: 2px solid transparent;
+}
+
+#filter_product_list::-webkit-scrollbar-thumb:hover {
+    background-color: #555;
+    cursor: pointer;
+}
+
+@media screen and (max-width: 768px) {
+    .custom-scroll {
+        max-height: 200px;
+        overflow-y: scroll;
+
+    }
+
+
+
+    #customerStore {
+        max-height: 400px;
+        overflow: scroll;
+    }
+
+    .custom-scroll::-webkit-scrollbar {
+        width: 9px;
+    }
+
+    .custom-scroll::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+
+    .custom-scroll::-webkit-scrollbar-thumb {
+        background-color: #888;
+        border-radius: 10px;
+        border: 2px solid transparent;
+    }
+
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+        background-color: #555;
+        cursor: pointer;
+    }
+}
+
+
+.card-box-agent {
+    padding: 20px;
+    box-shadow: 0 0px 8px 0 rgba(0, 0, 0, 0.06), 0 1px 0px 0 rgba(0, 0, 0, 0.02);
+    border-radius: 5px;
+    margin-bottom: 20px;
+    background-color: #ffffff;
+    border-top: 3px solid #343a40;
+}
