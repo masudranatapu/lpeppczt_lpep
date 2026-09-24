@@ -443,6 +443,8 @@ Route::middleware(['auth'])->group(function () {
     /////// APP Management ///////
     // Customer
     Route::get("/app-customer/select2-ajax", [AppCustomerController::class, "select2Ajax"])->name("app.customer.select2-ajax");
+    Route::get("/app-customer/export", [AppCustomerController::class, "export"])->name("app-customer.export");
+    Route::post("/app-customer/export", [AppCustomerController::class, "export"])->name("app-customer.export.selected");
     Route::resource('app-customer', AppCustomerController::class);
 
     // Firm
@@ -661,6 +663,9 @@ Route::prefix('warehouse')
         Route::middleware('auth:warehouse,warehouse_salesman')->group(function () {
             Route::get('/beneficiaries', [WarehousePortalController::class, 'beneficiaries'])->name('beneficiaries.index');
             Route::get('/beneficiaries/create', [WarehousePortalController::class, 'createBeneficiary'])->name('beneficiaries.create');
+            Route::get('/beneficiaries/import', [WarehousePortalController::class, 'importBeneficiariesForm'])->name('beneficiaries.import');
+            Route::post('/beneficiaries/import', [WarehousePortalController::class, 'importBeneficiaries'])->name('beneficiaries.import.store');
+            Route::get('/beneficiaries/import/template', [WarehousePortalController::class, 'beneficiaryImportTemplate'])->name('beneficiaries.import.template');
             Route::post('/beneficiaries', [WarehousePortalController::class, 'storeBeneficiary'])->name('beneficiaries.store');
             Route::get('/beneficiaries/{appCustomer}/edit', [WarehousePortalController::class, 'editBeneficiary'])->name('beneficiaries.edit');
             Route::put('/beneficiaries/{appCustomer}', [WarehousePortalController::class, 'updateBeneficiary'])->name('beneficiaries.update');

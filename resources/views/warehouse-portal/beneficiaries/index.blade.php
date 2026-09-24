@@ -10,6 +10,9 @@
         <section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
             <x-warehouse.page-header title="Beneficiary" description="Manage beneficiaries, livestock and service information.">
                 <x-slot name="actions">
+                    <a href="{{ route('warehouse.beneficiaries.import') }}" class="mr-2 inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50">
+                        Import Excel
+                    </a>
                     <a href="{{ route('warehouse.beneficiaries.create') }}" class="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500">
                         <span class="text-lg leading-none">+</span> Add New Customer
                     </a>

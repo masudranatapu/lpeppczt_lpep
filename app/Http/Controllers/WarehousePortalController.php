@@ -38,6 +38,9 @@ use Illuminate\Database\QueryException;
 use Illuminate\Pagination\LengthAwarePaginator;
 use App\Service\WarehouseInventoryService;
 use App\Service\WarehouseSaleAdminSyncService;
+use App\Exports\AppCustomerExport;
+use App\Imports\BeneficiaryImport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class WarehousePortalController extends Controller
 {
@@ -1397,6 +1400,66 @@ class WarehousePortalController extends Controller
         }
 
         return redirect()->route('warehouse.beneficiaries.index')->with('message', 'Beneficiary deleted successfully.');
+    }
+
+    public function importBeneficiariesForm()
+    {
+        $warehouse = $this->beneficiaryWarehouse();
+        $salesmen = $this->beneficiarySalesmen($warehouse);
+
+        return view('warehouse-portal.beneficiaries.import', $this->beneficiaryViewData($warehouse) + [
+            'salesmen' => $salesmen,
+            'report' => session('import_report'),
+        ]);
+    }
+
+    public function importBeneficiaries(Request $request)
+    {
+        $warehouse = $this->beneficiaryWarehouse();
+        $salesmen = $this->beneficiarySalesmen($warehouse);
+        $salesman = Auth::guard('warehouse_salesman')->user();
+
+        $request->validate([
+            'file' => ['required', 'file', 'max:10240', 'mimes:xlsx,xls,csv,txt'],
+            'salesman_id' => [$salesman ? 'nullable' : 'required', 'integer'],
+        ]);
+
+        if (!$salesman) {
+            $salesman = $salesmen->firstWhere('user_id', (int) $request->input('salesman_id'));
+        }
+        if (!$salesman || !$salesman->user_id) {
+            return back()->withErrors(['salesman_id' => 'Select a valid LSP for this Area Office.']);
+        }
+
+        // Beneficiaries of LSPs in other Area Offices must never be moved here.
+        $otherOfficeAgentIds = WarehouseSalesman::query()
+            ->where('warehouse_id', '!=', $warehouse->id)
+            ->whereNotNull('user_id')
+            ->pluck('user_id')
+            ->all();
+
+        set_time_limit(300);
+        $import = new BeneficiaryImport((int) $salesman->user_id, $otherOfficeAgentIds);
+
+        try {
+            Excel::import($import, $request->file('file'));
+        } catch (\Throwable $exception) {
+            report($exception);
+            return back()->withErrors(['file' => 'The file could not be imported. Please use the exported beneficiary Excel file or the template.']);
+        }
+
+        return redirect()->route('warehouse.beneficiaries.import')
+            ->with('import_report', $import->report + ['lsp' => $salesman->name]);
+    }
+
+    public function beneficiaryImportTemplate()
+    {
+        $this->beneficiaryWarehouse();
+
+        return Excel::download(
+            new AppCustomerExport(AppCustomer::query()->whereRaw('1 = 0')),
+            'beneficiary-import-template.xlsx'
+        );
     }
 
     private function beneficiaryWarehouse()

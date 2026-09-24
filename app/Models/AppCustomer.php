@@ -13,6 +13,11 @@ class AppCustomer extends Model
 
     protected $guarded = [];
 
+    public function agent()
+    {
+        return $this->belongsTo(User::class, 'agent_id');
+    }
+
     public function farms()
     {
         return $this->hasMany(Farm::class);

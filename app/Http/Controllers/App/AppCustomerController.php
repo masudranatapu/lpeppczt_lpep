@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\App;
 
+use App\Exports\AppCustomerExport;
 use App\Models\User;
 use Auth;
+use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\AppCustomer;
@@ -12,62 +14,107 @@ use Illuminate\Support\Facades\Hash;
 
 class AppCustomerController extends Controller
 {
-   public function index(Request $request)
-{
-    if ($request->ajax()) {
+    private const PER_PAGE_OPTIONS = ['10', '25', '50', '100', 'all'];
 
-        $baseQuery = AppCustomer::query()
-            ->when($request->agent_id || isRole(ROLE_AGENT), fn ($q) => $q->where('agent_id', $request->agent_id ?? auth()->id()))
-            ->when($request->filled('group_name'), fn ($q) => $q->where('beneficiary_number', 'LIKE', '%' . $request->group_name . '%'))
+    private function filteredQuery(Request $request)
+    {
+        return AppCustomer::query()
+            ->when(isRole(ROLE_AGENT), fn ($q) => $q->where('agent_id', auth()->id()))
             ->when($request->filled('agent_id'), fn ($q) => $q->where('agent_id', $request->agent_id))
             ->when($request->filled('staf'), fn ($q) => $q->where('agent_id', $request->staf))
-            ->when($request->filled('group_number'), fn ($q) => $q->where('group_number', $request->group_number));
+            ->when($request->filled('group_name'), fn ($q) => $q->where('beneficiary_number', $request->group_name))
+            ->when($request->filled('group_number'), fn ($q) => $q->where('group_number', $request->group_number))
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $search = trim($request->search);
+                $q->where(fn ($sub) => $sub
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('mobile', 'like', "%{$search}%")
+                    ->orWhere('village', 'like', "%{$search}%")
+                    ->orWhere('unions', 'like', "%{$search}%"));
+            });
+    }
 
-        $totals = (clone $baseQuery)->selectRaw("
+    private function livestockTotals($query)
+    {
+        return (clone $query)->selectRaw("
                 COALESCE(SUM(cow),0)   as cow,
                 COALESCE(SUM(bull),0)  as bull,
                 COALESCE(SUM(bakna),0) as bakna,
                 COALESCE(SUM(goat),0)  as goat,
                 COALESCE(SUM(khasi),0) as khasi
             ")->first();
-
-        $query = (clone $baseQuery)
-            ->orderByDesc('id')
-            ->with('farms:id,app_customer_id,name');
-
-        return datatables()->of($query)
-            ->addIndexColumn()
-            ->addColumn('farms', function ($data) {
-                return $data->farms->pluck('name')->implode(', ');
-            })
-            ->addColumn('action', function ($data) {
-                $btn = "<div class='btn btn-group'>" . $data->log();
-                if (Auth::user()?->userPermission?->role?->role_name === 'Admin') {
-                    $btn .= "<button type='button' class='btn btn-sm btn-success' title='QR Code' id='viewQr' data-id='{$data->id}'><i class='fa fa-qrcode'></i></button>";
-                }
-                $btn .= "<button type='button' class='btn btn-sm btn-primary' title='Edit' id='editAppCustomer' data-id='{$data->id}'><i class='fa fa-edit'></i></button>";
-                $btn .= "<button type='button' class='btn btn-sm btn-danger' title='Delete' id='deleteData' data-id='{$data->id}'><i class='fa fa-trash'></i></button>";
-                $btn .= "</div>";
-                return $btn;
-            })
-            ->rawColumns(['action'])
-            ->with('totals', $totals)
-            ->make(true);
     }
 
-    $agents = User::whereHas('userPermission', function ($q) {
-            $q->where('role_id', ROLE_AGENT);
-        })
-        ->where('status', 1)
-        ->get();
-    $staffs = User::whereHas('userPermission', function ($q) {
-            $q->where('role_id', 2);
-        })
-        ->where('status', 1)
-        ->get();
+    public function index(Request $request)
+    {
+        $isAdmin = Auth::user()?->userPermission?->role?->role_name === 'Admin';
+        $baseQuery = $this->filteredQuery($request);
+        $totals = $this->livestockTotals($baseQuery);
+        $query = (clone $baseQuery)
+            ->with(['createdBy:id,name', 'updatedBy:id,name'])
+            ->orderByDesc('id');
 
-    return view('app-customer.index', compact('agents','staffs'));
-}
+        // Still served as DataTables JSON for the app-bioenergy page, which reuses this endpoint.
+        if ($request->ajax()) {
+            return datatables()->of($query)
+                ->addIndexColumn()
+                ->addColumn('action', function ($data) use ($isAdmin) {
+                    $btn = "<div class='btn btn-group'>" . $data->log();
+                    if ($isAdmin) {
+                        $btn .= "<button type='button' class='btn btn-sm btn-success' title='QR Code' id='viewQr' data-id='{$data->id}'><i class='fa fa-qrcode'></i></button>";
+                    }
+                    $btn .= "<button type='button' class='btn btn-sm btn-primary' title='Edit' id='editAppCustomer' data-id='{$data->id}'><i class='fa fa-edit'></i></button>";
+                    $btn .= "<button type='button' class='btn btn-sm btn-danger' title='Delete' id='deleteData' data-id='{$data->id}'><i class='fa fa-trash'></i></button>";
+                    $btn .= "</div>";
+                    return $btn;
+                })
+                ->rawColumns(['action'])
+                ->with('totals', $totals)
+                ->make(true);
+        }
+
+        $perPage = (string) $request->query('per_page', '25');
+        if (!in_array($perPage, self::PER_PAGE_OPTIONS, true)) {
+            $perPage = '25';
+        }
+        $customers = $perPage === 'all'
+            ? $query->get()
+            : $query->paginate((int) $perPage)->withQueryString();
+
+        $agents = User::whereHas('userPermission', function ($q) {
+                $q->where('role_id', ROLE_AGENT);
+            })
+            ->where('status', 1)
+            ->get();
+        $staffs = User::whereHas('userPermission', function ($q) {
+                $q->where('role_id', 2);
+            })
+            ->where('status', 1)
+            ->get();
+        $perPageOptions = self::PER_PAGE_OPTIONS;
+
+        return view('app-customer.index', compact('agents', 'staffs', 'customers', 'totals', 'perPage', 'perPageOptions', 'isAdmin'));
+    }
+
+    public function export(Request $request)
+    {
+        // Bulk selection arrives as one comma separated field, so selecting
+        // more rows than PHP's max_input_vars (1000 on the server) still works.
+        $ids = collect(explode(',', (string) $request->input('ids')))
+            ->map(fn ($id) => (int) trim($id))
+            ->filter()
+            ->unique()
+            ->values();
+
+        // With ids only those rows are exported; the agent restriction still applies.
+        $query = $this->filteredQuery($request)
+            ->when($request->filled('ids'), fn ($q) => $q->whereIn('id', $ids));
+
+        return Excel::download(
+            new AppCustomerExport($query),
+            'beneficiaries-' . now()->format('Y-m-d') . '.xlsx'
+        );
+    }
 
     public function create(Request $request)
     {
