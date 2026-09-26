@@ -1,6 +1,7 @@
 /node_modules
 /public/hot
 /public/storage
+/public/uploads
 /storage/*.key
 /vendor
 .env
@@ -14,7 +15,6 @@ yarn-error.log
 backup.zip
 .git.zip
 error_log
-.env
-.env.*
-!.env.example
-/.claude/settings.local.json
+*.zip
+public/dashboard_assets/js/pages/leaflet-map.init.js
+public/dashboard_assets/
