@@ -19,7 +19,10 @@ use RuntimeException;
  *   Hepamin Forte 1 ltr                 32 -> 31
  *   Magvet Plus 500ml                   16 -> 15
  *   Bovi care 125gm                     73 -> 71
- *   Bonacal P oral suspension 1 liter   67 -> 66
+ *
+ * Bonacal P oral suspension 1 liter (67 -> 66, purchase WP-260900005 and
+ * transfer WT-260900003) is left out: the Rajbari office has already handed
+ * all of it to LSPs, so the extra unit sits with an LSP and needs a separate fix.
  *
  * The purchase screen refuses to reduce a purchase below what was already
  * transferred, so this seeder removes exactly those purchases (with their
@@ -42,7 +45,6 @@ class FixAdminStockSep2026Seeder extends Seeder
         206 => 'Hepamin Forte 1 ltr',
         215 => 'Magvet Plus 500ml',
         128 => 'Bovi care 125gm',
-        238 => 'Bonacal P oral suspension 1 liter',
     ];
 
     // Admin purchases to delete: id => [invoice_no, [product_id => quantity], total_amount]
@@ -51,7 +53,6 @@ class FixAdminStockSep2026Seeder extends Seeder
         53 => ['WP-260800052', [221 => 2], 200.00],
         57 => ['WP-260800056', [215 => 1, 128 => 1], 330.00],
         64 => ['WP-260900004', [128 => 1], 146.55],
-        65 => ['WP-260900005', [238 => 1], 194.91],
         66 => ['WP-260900006', [221 => 1], 100.00],
     ];
 
@@ -61,7 +62,6 @@ class FixAdminStockSep2026Seeder extends Seeder
         51 => ['WT-260800051', 221, 1],
         59 => ['WT-260800059', 215, 1],
         60 => ['WT-260800060', 128, 1],
-        66 => ['WT-260900003', 238, 1],
         67 => ['WT-260900004', 221, 1],
         76 => ['WT-260900013', 221, 1],
     ];
