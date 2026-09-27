@@ -147,7 +147,7 @@ class WarehouseSaleAdminSyncService
         ]);
 
         foreach ($feeRows as $feeType => $amount) {
-            VisitFee::create(['visit_info_id' => $visit->id, 'fee_type' => $feeType, 'amount' => round($amount)]);
+            VisitFee::create(['visit_info_id' => $visit->id, 'fee_type' => VisitFee::normalizeType($feeType), 'amount' => round($amount)]);
         }
 
         $income = Income::firstOrCreate(['income_date' => $sale->sale_date]);
@@ -238,7 +238,7 @@ class WarehouseSaleAdminSyncService
 
         foreach ($feeRows as $feeType => $amount) {
             if ($amount > 0) {
-                VisitFee::create(['visit_info_id' => $visit->id, 'fee_type' => $feeType, 'amount' => round($amount)]);
+                VisitFee::create(['visit_info_id' => $visit->id, 'fee_type' => VisitFee::normalizeType($feeType), 'amount' => round($amount)]);
             }
         }
 

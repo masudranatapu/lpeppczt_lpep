@@ -1084,7 +1084,7 @@ class WarehousePortalController extends Controller
         $areaNames = $visits->map(fn ($visit) => $visit->appCustomer?->village ?: $visit->appCustomer?->unions)->filter()->unique()->values();
         $groupNumbers = $visits->map(fn ($visit) => $visit->appCustomer?->group_number)->filter()->unique()->values();
         $visitTypeCounts = $visits->groupBy('visit_type')->map->count();
-        $feeSummary = $visits->flatMap->fees->groupBy('fee_type')->map(fn ($fees) => (float) $fees->sum('amount'));
+        $feeSummary = VisitFee::summarize($visits->flatMap->fees);
         return view('warehouse-portal.visits.print', compact('warehouse', 'visits', 'salesmen', 'fromDate', 'toDate', 'search', 'salesmanId', 'totalAmount', 'workingDays', 'areaNames', 'groupNumbers', 'visitTypeCounts', 'feeSummary'));
     }
 
@@ -1099,7 +1099,7 @@ class WarehousePortalController extends Controller
         $workingDays = ($fromDate && $toDate) ? collect(\Carbon\CarbonPeriod::create($fromDate, $toDate))->filter(fn ($date) => $date->dayOfWeek !== \Carbon\Carbon::FRIDAY)->count() : 0;
         $areaNames = $visits->map(fn ($visit) => $visit->appCustomer?->village ?: $visit->appCustomer?->unions)->filter()->unique()->values();
         $visitTypeCounts = $visits->groupBy('visit_type')->map->count();
-        $feeSummary = $visits->flatMap->fees->groupBy('fee_type')->map(fn ($fees) => (float) $fees->sum('amount'));
+        $feeSummary = VisitFee::summarize($visits->flatMap->fees);
         return view('warehouse-portal.visits.report', compact('salesman', 'fromDate', 'toDate', 'visits', 'workingDays', 'areaNames', 'visitTypeCounts', 'feeSummary'));
     }
 
@@ -1115,7 +1115,7 @@ class WarehousePortalController extends Controller
         $visits = VisitInfo::with(['appCustomer', 'agent', 'fees'])->whereIn('agent_id', $salesmanIds)->whereBetween('visit_date', [$fromDate . ' 00:00:00', $toDate . ' 23:59:59'])->latest('visit_date')->latest('created_at')->latest('id')->get();
         $workingDays = collect(\Carbon\CarbonPeriod::create($fromDate, $toDate))->filter(fn ($date) => $date->dayOfWeek !== \Carbon\Carbon::FRIDAY)->count();
         $visitTypeCounts = $visits->groupBy('visit_type')->map->count();
-        $feeSummary = $visits->flatMap->fees->groupBy('fee_type')->map(fn ($fees) => (float) $fees->sum('amount'));
+        $feeSummary = VisitFee::summarize($visits->flatMap->fees);
         return view('warehouse-portal.visits.area-report', compact('warehouse', 'salesmen', 'salesmanId', 'fromDate', 'toDate', 'visits', 'workingDays', 'visitTypeCounts', 'feeSummary'));
     }
 

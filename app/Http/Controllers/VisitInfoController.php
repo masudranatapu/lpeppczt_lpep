@@ -338,10 +338,9 @@ class VisitInfoController extends Controller
 
             // Fee summary
             if ($visits->isNotEmpty()) {
-                $feeSummary = VisitFee::whereIn('visit_info_id', $visits->pluck('id'))
-                    ->selectRaw('fee_type, SUM(amount) as total_amount')
-                    ->groupBy('fee_type')
-                    ->pluck('total_amount', 'fee_type');
+                $feeSummary = VisitFee::summarize(
+                    VisitFee::whereIn('visit_info_id', $visits->pluck('id'))->get(['fee_type', 'amount'])
+                );
             }
 
             // Count days (skip Friday)

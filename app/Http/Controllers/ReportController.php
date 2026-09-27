@@ -281,8 +281,18 @@ class ReportController extends Controller
             ->whereDate('sale_date', '>=', $startDate)->whereDate('sale_date', '<=', $endDate)->latest('sale_date');
         $allSales = (clone $salesQuery)->get();
         $sales = $perPage === 'all' ? $allSales : $salesQuery->paginate((int) $perPage)->withQueryString();
-        $addProfit = function ($sale) {
-            $purchaseAmount = $sale->items->sum(function ($item) use ($sale) {
+        // Each row reports only the selected product's lines (all lines when no product is chosen).
+        // The invoice discount and payment are shared out by line value, so a product's amount,
+        // paid, due and profit add up to the invoice when no product filter is applied.
+        $addProfit = function ($sale) use ($product) {
+            $items = $product
+                ? $sale->items->where('product_id', (int) $product)->values()
+                : $sale->items;
+            $subtotal = (float) $sale->items->sum('total');
+            $netRatio = $subtotal > 0 ? (float) $sale->total_amount / $subtotal : 0;
+            $paidRatio = (float) $sale->total_amount > 0 ? (float) $sale->paid_amount / (float) $sale->total_amount : 0;
+
+            $purchaseAmount = $items->sum(function ($item) use ($sale) {
                 $purchasePrice = $item->product?->warehousePurchaseItems
                     ->filter(fn ($purchaseItem) => $purchaseItem->purchase !== null
                         && ($purchaseItem->purchase->warehouse_id === null
@@ -292,11 +302,17 @@ class ReportController extends Controller
 
                 return (float) $purchasePrice * (float) $item->quantity;
             });
-            $saleRevenue = (float) $sale->items->sum('total');
-            $paidRevenue = (float) $sale->total_amount > 0
-                ? ($saleRevenue / (float) $sale->total_amount) * (float) $sale->paid_amount
-                : 0;
-            $sale->profit_amount = $paidRevenue - $purchaseAmount;
+
+            $itemsTotal = round((float) $items->sum('total') * $netRatio, 2);
+            $itemsPaid = round($itemsTotal * $paidRatio, 2);
+
+            $sale->report_items = $items;
+            $sale->report_quantity = (float) $items->sum('quantity');
+            // Without a product filter the row shows the invoice itself (also covers invoices with no lines).
+            $sale->report_total = $product ? $itemsTotal : round((float) $sale->total_amount, 2);
+            $sale->report_paid = $product ? $itemsPaid : round((float) $sale->paid_amount, 2);
+            $sale->report_due = round($sale->report_total - $sale->report_paid, 2);
+            $sale->profit_amount = round($itemsPaid - $purchaseAmount, 2);
             return $sale;
         };
         $allSales->each($addProfit);
