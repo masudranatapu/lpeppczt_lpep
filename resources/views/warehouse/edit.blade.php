@@ -47,6 +47,16 @@
 
                         <div class="col-sm-4">
                             <div class="form-group">
+                                <label for="daily_target">Daily Target (BDT)</label>
+                                <input class="form-control" placeholder="Daily Target" name="daily_target" type="number"
+                                    min="0" step="0.01" id="daily_target" required
+                                    value="{{ old('daily_target', (float) ($warehouse->daily_target ?? 5000)) }}">
+                                @error('daily_target')<span class="text-danger">{{ $message }}</span>@enderror
+                            </div>
+                        </div>
+
+                        <div class="col-sm-4">
+                            <div class="form-group">
                                 <label for="password">Password</label>
                                 <input class="form-control" placeholder="New Password" name="password" type="password"
                                     id="password">

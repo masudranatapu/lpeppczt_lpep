@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\AreaManagerDailyReportExport;
 use App\Models\Product;
 use App\Models\Warehouse;
+use App\Service\AreaManagerDailyReportService;
 use App\Models\WarehouseSalesman;
 use App\Models\WarehousePurchaseItem;
 use Carbon\Carbon;
@@ -18,6 +20,52 @@ class WarehouseController extends Controller
     private function ensureAdmin(): void
     {
         abort_unless(Auth::check() && Auth::user()?->userPermission?->role?->role_name === 'Admin', 403);
+    }
+
+    private function areaManagerDailyPayload(Request $request, AreaManagerDailyReportService $report): array
+    {
+        $this->ensureAdmin();
+
+        $data = $request->validate([
+            'warehouse_id' => ['nullable', 'integer', 'exists:lpep_warehouses,id'],
+            'month' => ['nullable', 'date_format:Y-m'],
+        ]);
+        $warehouses = Warehouse::query()->orderBy('name')->get(['id', 'name']);
+        $warehouseId = (int) ($data['warehouse_id'] ?? $warehouses->first()?->id);
+        abort_unless($warehouseId, 404, 'No Area Office found.');
+
+        return $report->build(Warehouse::findOrFail($warehouseId), $data['month'] ?? now()->format('Y-m'))
+            + ['warehouses' => $warehouses];
+    }
+
+    public function areaManagerDaily(Request $request, AreaManagerDailyReportService $report)
+    {
+        return view('warehouse.area-manager-daily', $this->areaManagerDailyPayload($request, $report));
+    }
+
+    public function areaManagerDailyPdf(Request $request, AreaManagerDailyReportService $report)
+    {
+        $data = $this->areaManagerDailyPayload($request, $report);
+
+        $dompdf = new \Dompdf\Dompdf();
+        $dompdf->loadHtml(view('warehouse-portal.reports.area-manager-daily-pdf', $data)->render());
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        return response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="area-manager-daily-report-' . $data['warehouse']->code . '-' . $data['month'] . '.pdf"',
+        ]);
+    }
+
+    public function areaManagerDailyExcel(Request $request, AreaManagerDailyReportService $report)
+    {
+        $data = $this->areaManagerDailyPayload($request, $report);
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new AreaManagerDailyReportExport($data),
+            'area-manager-daily-report-' . $data['warehouse']->code . '-' . $data['month'] . '.xlsx'
+        );
     }
 
     public function index()
@@ -360,6 +408,7 @@ class WarehouseController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:lpep_warehouses,email'],
             'password' => ['required', 'string', 'min:6'],
             'address' => ['nullable', 'string', 'max:255'],
+            'daily_target' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
         ]);
 
@@ -369,6 +418,7 @@ class WarehouseController extends Controller
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
             'address' => $data['address'] ?? null,
+            'daily_target' => $data['daily_target'] ?? 5000,
             'notes' => $data['notes'] ?? null,
             'created_by' => Auth::id(),
             'status' => 1,
@@ -561,6 +611,7 @@ class WarehouseController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:lpep_warehouses,email,' . $warehouse->id],
             'password' => ['nullable', 'string', 'min:6'],
             'address' => ['nullable', 'string', 'max:255'],
+            'daily_target' => ['required', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
             'status' => ['nullable', 'integer'],
         ]);

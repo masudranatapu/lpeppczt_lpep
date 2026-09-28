@@ -83,10 +83,17 @@
                     </div>
                 </div>
 
-                <x-warehouse.sidebar-item :href="route('warehouse.reports.index')" :active="request()->routeIs('warehouse.reports.*')" x-on:click="sidebarOpen = false">
-                    <x-slot name="icon"><svg class="h-5 w-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.25V10.5h4v8.75h-4Zm5.75 0V4.75h4v14.5h-4Zm5.75 0v-6.5h4v6.5h-4Z" /></svg></x-slot>
-                    Reports
-                </x-warehouse.sidebar-item>
+                <div x-data="{ reportsMenuOpen: @js(request()->routeIs('warehouse.reports.*')) }" class="pt-1">
+                    <button type="button" @click="reportsMenuOpen = !reportsMenuOpen" class="flex w-full items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-left text-sm font-medium text-slate-300 transition hover:border-white/5 hover:bg-white/[0.04] hover:text-white" :class="sidebarCollapsed ? 'lg:justify-center lg:px-2' : ''">
+                        <svg class="h-5 w-5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.25V10.5h4v8.75h-4Zm5.75 0V4.75h4v14.5h-4Zm5.75 0v-6.5h4v6.5h-4Z" /></svg>
+                        <span x-show="!sidebarCollapsed" class="truncate">Reports</span>
+                        <svg x-show="!sidebarCollapsed" class="ml-auto h-4 w-4 transition-transform" :class="reportsMenuOpen ? 'rotate-180 text-violet-300' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m6 9 6 6 6-6" /></svg>
+                    </button>
+                    <div x-cloak x-show="reportsMenuOpen && !sidebarCollapsed" x-collapse class="ml-9 border-l border-slate-700/80 py-1">
+                        <a href="{{ route('warehouse.reports.index') }}" class="block px-4 py-2 text-sm transition {{ request()->routeIs('warehouse.reports.index', 'warehouse.reports.print', 'warehouse.reports.pdf', 'warehouse.reports.excel') ? 'text-violet-300' : 'text-slate-400 hover:text-white' }}">Sales Report</a>
+                        <a href="{{ route('warehouse.reports.area-manager-daily') }}" class="block px-4 py-2 text-sm transition {{ request()->routeIs('warehouse.reports.area-manager-daily*') ? 'text-violet-300' : 'text-slate-400 hover:text-white' }}">Area Manager Daily Report</a>
+                    </div>
+                </div>
             @endif
 
             @if (Auth::guard('warehouse_salesman')->check())

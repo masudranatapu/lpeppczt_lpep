@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\AreaManagerDailyReportExport;
 use App\Exports\WarehousePortalSalesReportExport;
+use App\Service\AreaManagerDailyReportService;
 use App\Models\WarehouseSale;
 use App\Models\WarehouseSaleItem;
 use App\Models\WarehouseSalePayment;
@@ -309,6 +311,40 @@ class WarehousePortalReportController extends Controller
         $filename = 'warehouse-sales-report-' . $data['filters']['start_date'] . '-to-' . $data['filters']['end_date'] . '.xlsx';
 
         return Excel::download(new WarehousePortalSalesReportExport($data), $filename);
+    }
+
+    private function areaManagerDailyPayload(Request $request, AreaManagerDailyReportService $report): array
+    {
+        $data = $request->validate(['month' => ['nullable', 'date_format:Y-m']]);
+
+        return $report->build($this->currentWarehouse(), $data['month'] ?? now()->format('Y-m'));
+    }
+
+    public function areaManagerDaily(Request $request, AreaManagerDailyReportService $report)
+    {
+        return view('warehouse-portal.reports.area-manager-daily', $this->areaManagerDailyPayload($request, $report));
+    }
+
+    public function areaManagerDailyPdf(Request $request, AreaManagerDailyReportService $report)
+    {
+        $data = $this->areaManagerDailyPayload($request, $report);
+
+        $dompdf = new Dompdf();
+        $dompdf->loadHtml(view('warehouse-portal.reports.area-manager-daily-pdf', $data)->render());
+        $dompdf->setPaper('A4', 'landscape');
+        $dompdf->render();
+
+        return response($dompdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="area-manager-daily-report-' . $data['month'] . '.pdf"',
+        ]);
+    }
+
+    public function areaManagerDailyExcel(Request $request, AreaManagerDailyReportService $report)
+    {
+        $data = $this->areaManagerDailyPayload($request, $report);
+
+        return Excel::download(new AreaManagerDailyReportExport($data), 'area-manager-daily-report-' . $data['month'] . '.xlsx');
     }
 
     public function salesmen(Request $request)

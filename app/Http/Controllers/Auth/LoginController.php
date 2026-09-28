@@ -52,6 +52,18 @@ class LoginController extends Controller
 
         // Attempt login directly
         if (Auth::guard('web')->attempt([$fieldType => $request->email, 'password' => $request->password])) {
+            // LSP accounts also get an application user (same email and password) but no role;
+            // they must use the Area Office / LSP portal instead of the admin panel.
+            if (!Auth::guard('web')->user()->userPermission?->role) {
+                Auth::guard('web')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withInput($request->only('email'))->withErrors([
+                    'email' => 'This account has no access to the admin panel. LSP / Area Office accounts please log in at ' . route('warehouse.login'),
+                ]);
+            }
+
             $request->session()->regenerate();
 
             return redirect()->route('home');

@@ -121,6 +121,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('warehouses/stock/print', [WarehouseController::class, 'stockOverviewPrint'])->name('warehouses.stock.print');
     Route::get('warehouses/stock/pdf', [WarehouseController::class, 'stockOverviewPdf'])->name('warehouses.stock.pdf');
     Route::get('warehouses/stock/excel', [WarehouseController::class, 'stockOverviewExcel'])->name('warehouses.stock.excel');
+    Route::get('warehouses/area-manager-daily', [WarehouseController::class, 'areaManagerDaily'])->name('warehouses.area-manager-daily');
+    Route::get('warehouses/area-manager-daily/pdf', [WarehouseController::class, 'areaManagerDailyPdf'])->name('warehouses.area-manager-daily.pdf');
+    Route::get('warehouses/area-manager-daily/excel', [WarehouseController::class, 'areaManagerDailyExcel'])->name('warehouses.area-manager-daily.excel');
     Route::resource('warehouses', WarehouseController::class);
     Route::get('warehouse-salesmen/{warehouse_salesman}/reports', [WarehouseSalesmanController::class, 'salesReport'])
         ->name('warehouse-salesmen.reports');
@@ -623,6 +626,9 @@ Route::prefix('warehouse')
             Route::get('/reports/print', [WarehousePortalReportController::class, 'print'])->name('reports.print');
             Route::get('/reports/pdf', [WarehousePortalReportController::class, 'pdf'])->name('reports.pdf');
             Route::get('/reports/excel', [WarehousePortalReportController::class, 'excel'])->name('reports.excel');
+            Route::get('/reports/area-manager-daily', [WarehousePortalReportController::class, 'areaManagerDaily'])->name('reports.area-manager-daily');
+            Route::get('/reports/area-manager-daily/pdf', [WarehousePortalReportController::class, 'areaManagerDailyPdf'])->name('reports.area-manager-daily.pdf');
+            Route::get('/reports/area-manager-daily/excel', [WarehousePortalReportController::class, 'areaManagerDailyExcel'])->name('reports.area-manager-daily.excel');
 
             Route::get('/wallet', [WarehousePortalController::class, 'wallet'])->name('wallet');
             Route::get('/farms', [WarehousePortalController::class, 'farms'])->name('farms');

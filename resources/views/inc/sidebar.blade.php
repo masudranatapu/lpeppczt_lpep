@@ -398,6 +398,7 @@
                             <li><a href="{{ route('warehouse-purchases.index') }}">Admin Purchase</a></li>
                             <li><a href="{{ route('warehouse-stock-transfers.index') }}">Transferred List</a></li>
                             <li><a href="{{ route('warehouse-salesman-assignments.transfer-list') }}">Area Office Transfer List</a></li>
+                            <li><a href="{{ route('warehouses.area-manager-daily') }}">Area Manager Daily Report</a></li>
                             <li>
                                 <a href="javascript:void(0);"
                                     class="waves-effect {{ request()->routeIs('warehouse-salesmen.*', 'warehouse-salesman-assignments.*', 'warehouse-salesman-returns.*', 'report.lsp.due', 'report.lsp.sale') ? 'active subdrop' : '' }}">

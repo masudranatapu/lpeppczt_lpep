@@ -49,27 +49,18 @@ if (!function_exists('permission')) {
         });
     }
 
+    // Users without a role (e.g. the application user created for an LSP) have
+    // no permissions; treat them as not permitted instead of failing.
     function permission($data)
     {
-        $userPermission = cacheUserPermission(auth()->user()->id);
+        $permissions = json_decode(cacheUserPermission(auth()->user()->id)?->role?->permission?->permissions ?? '[]') ?: [];
 
-        if (isset($userPermission->role->permission)) {
-            $permission = $userPermission->role->permission;
-        }
-
-        if (in_array($data, json_decode($permission->permissions))) {
-            return true;
-        }
+        return in_array($data, $permissions);
     }
 
     function abortIfNotPermitted($data)
     {
-        $userPermission = cacheUserPermission(auth()->user()->id);
-
-        if (isset($userPermission->role->permission)) {
-            $permission = $userPermission->role->permission;
-        }
-        if (!in_array($data, json_decode($permission->permissions))) {
+        if (!permission($data)) {
             abort(401);
         }
     }
@@ -78,14 +69,14 @@ if (!function_exists('permission')) {
     {
         $userPermission = cacheUserPermission(auth()->user()->id);
 
-        if (isset($userPermission->role) && $userPermission->role->id != $roleId) {
+        if (!isset($userPermission->role) || $userPermission->role->id != $roleId) {
             abort(401);
         }
     }
 
     function isRole($roleId)
     {
-        return cacheUserPermission(auth()->user()->id)->role_id == $roleId;
+        return cacheUserPermission(auth()->user()->id)?->role_id == $roleId;
     }
 }
 
