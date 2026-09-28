@@ -596,15 +596,6 @@ Route::prefix('warehouse')
             Route::get('/stock/print', [WarehousePortalController::class, 'stockPrint'])->name('stock.print');
             Route::get('/stock/pdf', [WarehousePortalController::class, 'stockPdf'])->name('stock.pdf');
             Route::get('/stock/excel', [WarehousePortalController::class, 'stockExcel'])->name('stock.excel');
-            Route::get('/renewable-energy', [WarehousePortalController::class, 'renewableEnergyIndex'])->name('renewable-energy.index');
-            Route::get('/renewable-energy/create', [WarehousePortalController::class, 'renewableEnergyCreate'])->name('renewable-energy.create');
-            Route::post('/renewable-energy', [WarehousePortalController::class, 'renewableEnergyStore'])->name('renewable-energy.store');
-            Route::get('/renewable-energy/{renewableEnergy}/edit', [WarehousePortalController::class, 'renewableEnergyEdit'])->name('renewable-energy.edit');
-            Route::put('/renewable-energy/{renewableEnergy}', [WarehousePortalController::class, 'renewableEnergyUpdate'])->name('renewable-energy.update');
-            Route::delete('/renewable-energy/{renewableEnergy}', [WarehousePortalController::class, 'renewableEnergyDestroy'])->name('renewable-energy.destroy');
-            Route::get('/renewable-energy/geocode/districts/{division}', [WarehousePortalController::class, 'renewableEnergyDistricts'])->name('renewable-energy.districts');
-            Route::get('/renewable-energy/geocode/upazilas/{district}', [WarehousePortalController::class, 'renewableEnergyUpazilas'])->name('renewable-energy.upazilas');
-            Route::get('/renewable-energy/geocode/unions/{upazila}', [WarehousePortalController::class, 'renewableEnergyUnions'])->name('renewable-energy.unions');
             Route::get('/salesman-assignments', [WarehouseSalesmanAssignmentController::class, 'index'])->name('salesman-assignments.index');
             Route::get('/salesman-assignments/create', [WarehouseSalesmanAssignmentController::class, 'create'])->name('salesman-assignments.create');
             Route::post('/salesman-assignments', [WarehouseSalesmanAssignmentController::class, 'store'])->name('salesman-assignments.store');
@@ -664,6 +655,18 @@ Route::prefix('warehouse')
             Route::put('/sales/{warehouse_sale}', [WarehousePortalController::class, 'updateSale'])->name('sales.update');
             Route::get('/sales/{warehouse_sale}/invoice', [WarehousePortalController::class, 'invoice'])->name('sales.invoice');
             Route::get('/sales/{warehouse_sale}', [WarehousePortalController::class, 'show'])->name('sales.show');
+        });
+
+        Route::middleware('auth:warehouse,warehouse_salesman')->group(function () {
+            Route::get('/renewable-energy', [WarehousePortalController::class, 'renewableEnergyIndex'])->name('renewable-energy.index');
+            Route::get('/renewable-energy/create', [WarehousePortalController::class, 'renewableEnergyCreate'])->name('renewable-energy.create');
+            Route::post('/renewable-energy', [WarehousePortalController::class, 'renewableEnergyStore'])->name('renewable-energy.store');
+            Route::get('/renewable-energy/{renewableEnergy}/edit', [WarehousePortalController::class, 'renewableEnergyEdit'])->name('renewable-energy.edit');
+            Route::put('/renewable-energy/{renewableEnergy}', [WarehousePortalController::class, 'renewableEnergyUpdate'])->name('renewable-energy.update');
+            Route::delete('/renewable-energy/{renewableEnergy}', [WarehousePortalController::class, 'renewableEnergyDestroy'])->name('renewable-energy.destroy');
+            Route::get('/renewable-energy/geocode/districts/{division}', [WarehousePortalController::class, 'renewableEnergyDistricts'])->name('renewable-energy.districts');
+            Route::get('/renewable-energy/geocode/upazilas/{district}', [WarehousePortalController::class, 'renewableEnergyUpazilas'])->name('renewable-energy.upazilas');
+            Route::get('/renewable-energy/geocode/unions/{upazila}', [WarehousePortalController::class, 'renewableEnergyUnions'])->name('renewable-energy.unions');
         });
 
         Route::middleware('auth:warehouse,warehouse_salesman')->group(function () {

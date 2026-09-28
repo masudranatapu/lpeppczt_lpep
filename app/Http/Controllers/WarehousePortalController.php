@@ -9,6 +9,7 @@ use App\Models\WarehouseSalePayment;
 use App\Models\WarehouseSalesman;
 use App\Models\WarehouseSalesmanAssignment;
 use App\Models\WarehouseStockTransfer;
+use App\Models\Warehouse;
 use App\Models\RenewableEnergy;
 use App\Models\AppCustomer;
 use App\Models\User;
@@ -308,7 +309,9 @@ class WarehousePortalController extends Controller
 
     public function renewableEnergyIndex(Request $request)
     {
-        $salesman = $this->renewableEnergySalesman();
+        $context = $this->renewableEnergyContext();
+        $warehouse = $context['warehouse'];
+        $portalUser = $context['user'];
         $search = trim((string) $request->query('search', ''));
         $fromDate = $request->query('from_date');
         $toDate = $request->query('to_date');
@@ -317,7 +320,7 @@ class WarehousePortalController extends Controller
             $perPage = '10';
         }
         $entries = RenewableEnergy::query()
-            ->where('agent_id', $salesman->user_id)
+            ->where('agent_id', $portalUser->id)
             ->with(['area', 'agent', 'division', 'district', 'upazila', 'union'])
             ->when($fromDate, fn ($query) => $query->whereDate('visit_date', '>=', $fromDate))
             ->when($toDate, fn ($query) => $query->whereDate('visit_date', '<=', $toDate))
@@ -331,32 +334,32 @@ class WarehousePortalController extends Controller
             ->latest('id');
         $entries = $perPage === 'all' ? $entries->get() : $entries->paginate((int) $perPage)->withQueryString();
 
-        return view('warehouse-portal.renewable-energy.index', $this->renewableEnergyViewData($salesman) + compact('entries', 'search', 'fromDate', 'toDate', 'perPage'));
+        return view('warehouse-portal.renewable-energy.index', $this->renewableEnergyViewData($context) + compact('entries', 'search', 'fromDate', 'toDate', 'perPage'));
     }
 
     public function renewableEnergyCreate()
     {
-        $salesman = $this->renewableEnergySalesman();
+        $context = $this->renewableEnergyContext();
         $divisions = Division::query()->orderBy('name')->pluck('name', 'id');
-        return view('warehouse-portal.renewable-energy.create', $this->renewableEnergyViewData($salesman) + compact('divisions'));
+        return view('warehouse-portal.renewable-energy.create', $this->renewableEnergyViewData($context) + compact('divisions'));
     }
 
     public function renewableEnergyEdit(RenewableEnergy $renewableEnergy)
     {
-        $salesman = $this->renewableEnergySalesman();
-        abort_unless((int) $renewableEnergy->agent_id === (int) $salesman->user_id, 404);
+        $context = $this->renewableEnergyContext();
+        abort_unless((int) $renewableEnergy->agent_id === (int) $context['user']->id, 404);
         $divisions = Division::query()->orderBy('name')->pluck('name', 'id');
         $districts = $renewableEnergy->division_id ? District::where('division_id', $renewableEnergy->division_id)->orderBy('name')->pluck('name', 'id') : collect();
         $upazilas = $renewableEnergy->district_id ? Upazila::where('district_id', $renewableEnergy->district_id)->orderBy('name')->pluck('name', 'id') : collect();
         $unions = $renewableEnergy->upazila_id ? Union::where('upazila_id', $renewableEnergy->upazila_id)->orderBy('name')->pluck('name', 'id') : collect();
-        return view('warehouse-portal.renewable-energy.edit', $this->renewableEnergyViewData($salesman) + compact('renewableEnergy', 'divisions', 'districts', 'upazilas', 'unions'));
+        return view('warehouse-portal.renewable-energy.edit', $this->renewableEnergyViewData($context) + compact('renewableEnergy', 'divisions', 'districts', 'upazilas', 'unions'));
     }
 
     public function renewableEnergyUpdate(Request $request, RenewableEnergy $renewableEnergy)
     {
-        $salesman = $this->renewableEnergySalesman();
-        abort_unless((int) $renewableEnergy->agent_id === (int) $salesman->user_id, 404);
-        $data = $request->validate(['type'=>['required','in:biogas,solar'],'client_name'=>['required','string','max:255'],'client_number'=>['nullable','string','max:50'],'village'=>['nullable','string','max:255'],'livestock_details'=>['nullable','string'],'plant_size'=>['nullable','numeric','min:0'],'plant_size_unit'=>['nullable','string','max:20'],'plant_start_date'=>['nullable','date'],'plant_end_date'=>['nullable','date','after_or_equal:plant_start_date'],'po_name'=>['nullable','string','max:255'],'contribution_condition'=>['nullable','string'],'remarks'=>['nullable','string'],'document'=>['nullable','file','max:5120','mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,zip,rar']]);
+        $context = $this->renewableEnergyContext();
+        abort_unless((int) $renewableEnergy->agent_id === (int) $context['user']->id, 404);
+        $data = $request->validate(['type'=>['required','in:biogas,solar'],'client_name'=>['required','string','max:255'],'client_number'=>['nullable','string','max:50'],'ward_number'=>['nullable','integer','between:1,20'],'village'=>['nullable','string','max:255'],'livestock_details'=>['nullable','string'],'plant_size'=>['nullable','numeric','min:0'],'plant_size_unit'=>['nullable','string','max:20'],'plant_start_date'=>['nullable','date'],'plant_end_date'=>['nullable','date','after_or_equal:plant_start_date'],'po_name'=>['nullable','string','max:255'],'contribution_condition'=>['nullable','string'],'remarks'=>['nullable','string'],'document'=>['nullable','file','max:5120','mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,zip,rar']]);
         foreach (['division_id','district_id','upazila_id','union_id'] as $field) $data[$field] = $request->input($field) ?: null;
         if ($request->hasFile('document')) { $file=$request->file('document'); $name=time().'_'.preg_replace('/[^A-Za-z0-9._-]/','_',$file->getClientOriginalName()); $file->move(public_path('uploads/renewable_energy'),$name); $data['document']='uploads/renewable_energy/'.$name; }
         $renewableEnergy->update($data);
@@ -365,15 +368,16 @@ class WarehousePortalController extends Controller
 
     public function renewableEnergyDestroy(RenewableEnergy $renewableEnergy)
     {
-        $salesman = $this->renewableEnergySalesman();
-        abort_unless((int) $renewableEnergy->agent_id === (int) $salesman->user_id, 404);
+        $context = $this->renewableEnergyContext();
+        abort_unless((int) $renewableEnergy->agent_id === (int) $context['user']->id, 404);
         $renewableEnergy->delete();
         return redirect()->route('warehouse.renewable-energy.index')->with('message', 'Renewable Energy entry deleted successfully.');
     }
 
     public function renewableEnergyStore(Request $request)
     {
-        $salesman = $this->renewableEnergySalesman();
+        $context = $this->renewableEnergyContext();
+        $portalUser = $context['user'];
         $data = $request->validate([
             'type' => ['required', 'in:biogas,solar'],
             'client_name' => ['required', 'string', 'max:255'],
@@ -382,6 +386,7 @@ class WarehousePortalController extends Controller
             'district_id' => ['nullable', 'integer', 'exists:districts,id'],
             'upazila_id' => ['nullable', 'integer', 'exists:upazilas,id'],
             'union_id' => ['nullable', 'integer', 'exists:unions,id'],
+            'ward_number' => ['nullable', 'integer', 'between:1,20'],
             'village' => ['nullable', 'string', 'max:255'],
             'livestock_details' => ['nullable', 'string'],
             'plant_size' => ['nullable', 'numeric', 'min:0'],
@@ -406,11 +411,11 @@ class WarehousePortalController extends Controller
         }
 
         RenewableEnergy::create($data + [
-            'area_id' => $salesman->user_id,
-            'agent_id' => $salesman->user_id,
+            'area_id' => $portalUser->id,
+            'agent_id' => $portalUser->id,
             'visit_date' => now()->toDateString(),
             'plant_size_unit' => $data['plant_size_unit'] ?? 'm³',
-            'created_by' => $salesman->user_id,
+            'created_by' => $portalUser->id,
         ]);
 
         return redirect()->route('warehouse.renewable-energy.index')->with('message', 'Renewable Energy entry saved successfully.');
@@ -418,19 +423,19 @@ class WarehousePortalController extends Controller
 
     public function renewableEnergyDistricts(int $division)
     {
-        $this->renewableEnergySalesman();
+        $this->renewableEnergyContext();
         return response()->json($this->banglaLocationOptions(District::query()->where('division_id', $division)->orderBy('name')->get(['id', 'name', 'bn_name'])));
     }
 
     public function renewableEnergyUpazilas(int $district)
     {
-        $this->renewableEnergySalesman();
+        $this->renewableEnergyContext();
         return response()->json($this->banglaLocationOptions(Upazila::query()->where('district_id', $district)->orderBy('name')->get(['id', 'name', 'bn_name'])));
     }
 
     public function renewableEnergyUnions(int $upazila)
     {
-        $this->renewableEnergySalesman();
+        $this->renewableEnergyContext();
         return response()->json($this->banglaLocationOptions(Union::query()->where('upazila_id', $upazila)->orderBy('name')->get(['id', 'name', 'bn_name'])));
     }
 
@@ -444,11 +449,50 @@ class WarehousePortalController extends Controller
         ])->values();
     }
 
+    private function renewableEnergyWarehouseUser(Warehouse $warehouse): User
+    {
+        $this->ensureWarehouseAccount();
+
+        return User::firstOrCreate(
+            ['email' => $warehouse->email],
+            [
+                'name' => $warehouse->name,
+                'password' => Hash::make(Str::random(32)),
+            ]
+        );
+    }
+
+    private function renewableEnergyContext(): array
+    {
+        if (Auth::guard('warehouse_salesman')->check()) {
+            $salesman = $this->renewableEnergySalesman();
+
+            return [
+                'warehouse' => $salesman->warehouse,
+                'user' => User::findOrFail($salesman->user_id),
+                'isSalesman' => true,
+                'name' => $salesman->name,
+                'email' => $salesman->email,
+            ];
+        }
+
+        $warehouse = $this->currentWarehouse();
+
+        return [
+            'warehouse' => $warehouse,
+            'user' => $this->renewableEnergyWarehouseUser($warehouse),
+            'isSalesman' => false,
+            'name' => $warehouse->name,
+            'email' => $warehouse->email,
+        ];
+    }
+
     private function renewableEnergySalesman(): WarehouseSalesman
     {
         $this->ensureSalesmanAccount();
         $salesman = Auth::guard('warehouse_salesman')->user();
-        if ($salesman && !$salesman->user_id && $salesman->email) {
+
+        if ($salesman && ! $salesman->user_id && $salesman->email) {
             $applicationUser = User::firstOrCreate(
                 ['email' => $salesman->email],
                 [
@@ -458,18 +502,20 @@ class WarehousePortalController extends Controller
             );
             $salesman->forceFill(['user_id' => $applicationUser->id])->save();
         }
+
         abort_unless($salesman?->user_id, 403, 'This LSP account is not linked to an application user.');
+
         return $salesman;
     }
 
-    private function renewableEnergyViewData(WarehouseSalesman $salesman): array
+    private function renewableEnergyViewData(array $context): array
     {
         return [
             'title' => 'Renewable Energy',
-            'warehouseName' => $salesman->name,
-            'warehouseEmail' => $salesman->email,
-            'isSalesman' => true,
-            'warehouse' => $salesman->warehouse,
+            'warehouseName' => $context['name'],
+            'warehouseEmail' => $context['email'],
+            'isSalesman' => $context['isSalesman'],
+            'warehouse' => $context['warehouse'],
         ];
     }
 

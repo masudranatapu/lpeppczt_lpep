@@ -25,6 +25,7 @@ class CreateRenewableEnergiesTable extends Migration
             $table->foreignId('district_id')->nullable()->constrained('districts');
             $table->foreignId('upazila_id')->nullable()->constrained('upazilas');
             $table->foreignId('union_id')->nullable()->constrained('unions');
+            $table->unsignedTinyInteger('ward_number')->nullable();
             $table->string('village')->nullable();
             $table->text('livestock_details')->nullable();
             $table->decimal('plant_size', 10, 2)->nullable();

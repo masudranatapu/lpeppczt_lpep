@@ -75,6 +75,10 @@
             <td>{{ $entry->union->name ?? 'N/A' }}</td>
         </tr>
         <tr>
+            <th>Ward Number</th>
+            <td>{{ $entry->ward_number ?? 'N/A' }}</td>
+        </tr>
+        <tr>
             <th>Livestock Details</th>
             <td>{{ $entry->livestock_details ?? 'N/A' }}</td>
         </tr>

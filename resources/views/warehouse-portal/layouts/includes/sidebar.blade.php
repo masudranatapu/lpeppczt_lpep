@@ -164,13 +164,6 @@
                     </div>
                 </div>
 
-                <div class="pt-1">
-                    <a href="{{ route('warehouse.renewable-energy.index') }}" class="flex w-full items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-sm font-medium transition hover:border-white/5 hover:bg-white/[0.04] hover:text-white {{ request()->routeIs('warehouse.renewable-energy.*') ? 'text-emerald-300' : 'text-slate-300' }}" :class="sidebarCollapsed ? 'lg:justify-center lg:px-2' : ''">
-                        <svg class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3.75v2.5m0 11.5v2.5M4.75 12h-2.5m19.5 0h-2.5m-1.86-5.14-1.77 1.77m-9.24 9.24-1.77 1.77m0-12.78 1.77 1.77m9.24 9.24 1.77 1.77M16.25 12a4.25 4.25 0 1 1-8.5 0 4.25 4.25 0 0 1 8.5 0Z" /></svg>
-                        <span x-show="!sidebarCollapsed">Renewable Energy</span>
-                    </a>
-                </div>
-
                 <div x-data="{ dailyVisitMenuOpen: @js(request()->routeIs('warehouse.daily-visits*')) }" class="pt-1">
                     <button type="button" @click="dailyVisitMenuOpen = !dailyVisitMenuOpen" class="flex w-full items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-left text-sm font-medium text-slate-300 transition hover:border-white/5 hover:bg-white/[0.04] hover:text-white" :class="sidebarCollapsed ? 'lg:justify-center lg:px-2' : ''">
                         <svg class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M6.5 4.75h11A1.75 1.75 0 0 1 19.25 6.5v13H4.75v-13A1.75 1.75 0 0 1 6.5 4.75ZM8 3.75v3M16 3.75v3M7.5 10h9M7.5 14h5" /></svg>
@@ -183,6 +176,15 @@
                         <a href="{{ route('warehouse.qr.scan') }}" class="block px-4 py-2 text-sm transition {{ request()->routeIs('warehouse.qr.scan') ? 'text-emerald-300' : 'text-slate-400 hover:text-white' }}">QR Code Scan</a>
                         <a href="{{ route('warehouse.daily-visits.report') }}" class="block px-4 py-2 text-sm transition {{ request()->routeIs('warehouse.daily-visits.report') ? 'text-emerald-300' : 'text-slate-400 hover:text-white' }}">Report</a>
                     </div>
+                </div>
+            @endif
+
+            @if (Auth::guard('warehouse')->check() || Auth::guard('warehouse_salesman')->check())
+                <div class="pt-1">
+                    <a href="{{ route('warehouse.renewable-energy.index') }}" class="flex w-full items-center gap-3 rounded-2xl border border-transparent px-4 py-3 text-sm font-medium transition hover:border-white/5 hover:bg-white/[0.04] hover:text-white {{ request()->routeIs('warehouse.renewable-energy.*') ? 'text-emerald-300' : 'text-slate-300' }}" :class="sidebarCollapsed ? 'lg:justify-center lg:px-2' : ''">
+                        <svg class="h-5 w-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3.75v2.5m0 11.5v2.5M4.75 12h-2.5m19.5 0h-2.5m-1.86-5.14-1.77 1.77m-9.24 9.24-1.77 1.77m0-12.78 1.77 1.77m9.24 9.24 1.77 1.77M16.25 12a4.25 4.25 0 1 1-8.5 0 4.25 4.25 0 0 1 8.5 0Z" /></svg>
+                        <span x-show="!sidebarCollapsed">Renewable Energy</span>
+                    </a>
                 </div>
             @endif
 

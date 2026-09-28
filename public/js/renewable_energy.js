@@ -83,6 +83,11 @@ $(function () {
                 defaultContent: 'N/A'
             },
             {
+                data: "ward_number",
+                name: "ward_number",
+                defaultContent: 'N/A'
+            },
+            {
                 data: "village",
                 name: "village",
                 defaultContent: 'N/A'

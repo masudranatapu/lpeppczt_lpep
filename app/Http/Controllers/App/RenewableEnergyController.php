@@ -40,6 +40,7 @@ class RenewableEnergyController extends Controller
             'type' => 'required|in:biogas,solar',
             'area_id' => 'required|exists:users,id',
             'client_name' => 'required|string|max:255',
+            'ward_number' => 'nullable|integer|between:1,20',
             'document' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,zip,rar',
         ]);
 
@@ -93,6 +94,13 @@ class RenewableEnergyController extends Controller
     public function update(Request $request, $id): JsonResponse
     {
         $entry = RenewableEnergy::findOrFail($id);
+        $request->validate([
+            'type' => 'required|in:biogas,solar',
+            'area_id' => 'required|exists:users,id',
+            'client_name' => 'required|string|max:255',
+            'ward_number' => 'nullable|integer|between:1,20',
+            'document' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,gif,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,zip,rar',
+        ]);
         try {
             DB::beginTransaction();
             // Keep the automatically generated entry date immutable during edits.

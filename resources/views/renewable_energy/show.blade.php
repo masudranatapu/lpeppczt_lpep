@@ -46,7 +46,7 @@
                 
                   <tr>
                     <th>Ward No.</th>
-                    <td>{{ $entry->ward_no ?? 'N/A' }}</td>
+                    <td>{{ $entry->ward_number ?? 'N/A' }}</td>
                 </tr>
                 
                 <tr>
