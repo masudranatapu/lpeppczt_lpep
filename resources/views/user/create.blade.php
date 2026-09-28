@@ -63,17 +63,29 @@
 
                     <div class="form-group row">
                         <div class="col-md-6">
-                            <label for=""> {{ __('page.usercreate')[5] }} <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control" name="password" placeholder="User Password"
-                                required>
+                            <label for="user_password"> {{ __('page.usercreate')[5] }} <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="user_password" name="password" placeholder="User Password" required>
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-light border password-toggle" data-target="user_password" aria-label="Toggle password visibility">
+                                        <i class="fa fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
                             @error('password')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
                         </div>
                         <div class="col-md-6">
-                            <label for=""> {{ __('page.usercreate')[6] }} <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control" name="password_confirmation"
-                                placeholder="User Confirm Password" required>
+                            <label for="user_password_confirmation"> {{ __('page.usercreate')[6] }} <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="user_password_confirmation" name="password_confirmation" placeholder="User Confirm Password" required>
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-light border password-toggle" data-target="user_password_confirmation" aria-label="Toggle password visibility">
+                                        <i class="fa fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 

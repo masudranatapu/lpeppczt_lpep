@@ -70,7 +70,45 @@
             font-weight: 900 !important;
         }
 
+        .password-toggle {
+            min-width: 46px;
+            background: #fff;
+            color: #6c757d;
+            border-left: 0;
+        }
+
+        .password-toggle:hover,
+        .password-toggle:focus {
+            background: #f8f9fa;
+            color: #2aa9b9;
+        }
     </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.password-toggle').forEach(function (toggleButton) {
+                const targetId = toggleButton.getAttribute('data-target');
+                const passwordInput = document.getElementById(targetId);
+
+                if (!passwordInput) {
+                    return;
+                }
+
+                const setEyeState = function (isVisible) {
+                    toggleButton.innerHTML = isVisible ? '<i class="fa fa-eye-slash"></i>' : '<i class="fa fa-eye"></i>';
+                    toggleButton.setAttribute('title', isVisible ? 'Hide Password' : 'Show Password');
+                };
+
+                setEyeState(false);
+
+                toggleButton.addEventListener('click', function () {
+                    const shouldShow = passwordInput.type === 'password';
+                    passwordInput.type = shouldShow ? 'text' : 'password';
+                    setEyeState(shouldShow);
+                });
+            });
+        });
+    </script>
 
 </head>
 

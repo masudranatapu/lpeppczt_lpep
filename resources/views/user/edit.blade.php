@@ -59,8 +59,15 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label for=""> Password <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control" name="password" placeholder="User Password">
+                            <label for="user_edit_password"> Password <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="user_edit_password" name="password" placeholder="User Password">
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-light border password-toggle" data-target="user_edit_password" aria-label="Toggle password visibility">
+                                        <i class="fa fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
                             @error('password')
                                 <span class="text-danger">{{ $message }}</span>
                             @enderror
@@ -69,12 +76,18 @@
 
                     <div class="form-group row">
                         <div class="col-md-6">
-                            <label for=""> {{ __('page.usercreate')[6] }} <span
+                            <label for="user_edit_password_confirmation"> {{ __('page.usercreate')[6] }} <span
                                     class="text-danger">*</span></label>
-                            <input type="password" class="form-control" name="password_confirmation"
-                                placeholder="User Confirm Password">
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="user_edit_password_confirmation" name="password_confirmation" placeholder="User Confirm Password">
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-light border password-toggle" data-target="user_edit_password_confirmation" aria-label="Toggle password visibility">
+                                        <i class="fa fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        
+
                         @if($user->userPermission->role_id != 1)
                         <div class="col-md-6">
                             <label for=""> {{ __('page.usercreate')[4] }} <span class="text-danger">*</span></label>

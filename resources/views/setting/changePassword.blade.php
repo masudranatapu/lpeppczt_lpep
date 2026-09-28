@@ -1,7 +1,7 @@
 @extends('layouts.dashboard')
 
 @section('content')
-    
+
     <div class="row">
         <div class="col-md-12">
             <div class="card-box table-responsive mt-4">
@@ -14,15 +14,29 @@
                     <form action="{{ route('change.password.update') }}" method="post" class="resultFind">
                       @csrf
                       <div class="form-group">
-                        <label for="roll" class="form-label">Old Password</label>
-                        <input type="password" name="old_password" placeholder="Enter Old Password" required class="form-control" id="roll">
+                        <label for="old_password" class="form-label">Old Password</label>
+                        <div class="input-group">
+                          <input type="password" name="old_password" placeholder="Enter Old Password" required class="form-control" id="old_password">
+                          <div class="input-group-append">
+                            <button type="button" class="btn btn-light border password-toggle" data-target="old_password" aria-label="Toggle password visibility">
+                              <i class="fa fa-eye"></i>
+                            </button>
+                          </div>
+                        </div>
                         @error ('old_password')
                           <span class="text-danger">{{ $message }}</span>
                         @enderror
                       </div>
                       <div class="form-group">
-                        <label for="new" class="form-label">New Password</label>
-                        <input type="password" name="password" placeholder="Enter New Password" class="form-control" id="new">
+                        <label for="new_password" class="form-label">New Password</label>
+                        <div class="input-group">
+                          <input type="password" name="password" placeholder="Enter New Password" class="form-control" id="new_password">
+                          <div class="input-group-append">
+                            <button type="button" class="btn btn-light border password-toggle" data-target="new_password" aria-label="Toggle password visibility">
+                              <i class="fa fa-eye"></i>
+                            </button>
+                          </div>
+                        </div>
                         @error ('password')
                           <span class="text-danger">{{ $message }}</span>
                         @enderror
@@ -31,20 +45,27 @@
                         @endif
                       </div>
                       <div class="form-group">
-                        <label for="Confirm" class="form-label">Confirm Password</label>
-                        <input type="password" name="password_confirmation" placeholder="Enter Confirm Password" class="form-control" id="Confirm">
+                        <label for="confirm_password" class="form-label">Confirm Password</label>
+                        <div class="input-group">
+                          <input type="password" name="password_confirmation" placeholder="Enter Confirm Password" class="form-control" id="confirm_password">
+                          <div class="input-group-append">
+                            <button type="button" class="btn btn-light border password-toggle" data-target="confirm_password" aria-label="Toggle password visibility">
+                              <i class="fa fa-eye"></i>
+                            </button>
+                          </div>
+                        </div>
                         @error ('password_confirmation')
                           <span class="text-danger">{{ $message }}</span>
                         @enderror
                       </div>
-                      
+
                       <div class="mt-3 float-right">
                         <button type="submit" class="btn btn-outline-warning">Change</button>
                       </div>
-        
+
                     </form>
                 </div>
-        
+
 
             </div>
         </div>
