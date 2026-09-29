@@ -101,7 +101,7 @@
                      <label class="text-xs font-bold uppercase tracking-wide text-slate-500">Ward Number
                         <select name="ward_number" class="mt-1 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-normal normal-case">
                             <option value="">Select Ward Number</option>
-                            @foreach(range(1, 20) as $number)<option value="{{ $number }}" @selected((string) old('ward_number') === (string) $number)>{{ $number }}</option>@endforeach
+                            @foreach(range(1, 9) as $number)<option value="{{ $number }}" @selected((string) old('ward_number') === (string) $number)>{{ $number }}</option>@endforeach
                         </select>
                     </label>
                 </div>

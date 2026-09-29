@@ -106,14 +106,12 @@
                         </select>
                     </div>
                 </div>
-                
-                
                 <div class="col-md-3">
                     <div class="form-group">
                         <label>Ward Number</label>
                         <select name="ward_number" class="form-control">
                             <option value="">Select Ward Number</option>
-                            @foreach(range(1, 20) as $number)<option value="{{ $number }}" @selected((string) old('ward_number', $entry->ward_number) === (string) $number)>{{ $number }}</option>@endforeach
+                            @foreach(range(1, 9) as $number)<option value="{{ $number }}" @selected((string) old('ward_number', $entry->ward_number) === (string) $number)>{{ $number }}</option>@endforeach
                         </select>
                     </div>
                 </div>
