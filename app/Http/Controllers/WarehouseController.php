@@ -472,6 +472,19 @@ class WarehouseController extends Controller
 
         $warehouse->load(['salesmen', 'purchases.items.product', 'stockTransfers.items.product', 'sales.items.product']);
 
+        // Net value of each sale line: the invoice discount is shared out by line value,
+        // so the lines of an invoice add up to what the customer was charged.
+        $withNetAmounts = function ($sale) {
+            $subtotal = (float) $sale->items->sum(fn ($item) => (float) $item->quantity * (float) $item->sale_price);
+            $ratio = $subtotal > 0 ? (float) $sale->total_amount / $subtotal : 0;
+            $sale->items->each(function ($item) use ($ratio) {
+                $item->net_amount = (float) $item->quantity * (float) $item->sale_price * $ratio;
+            });
+
+            return $sale;
+        };
+        $warehouse->sales->each($withNetAmounts);
+
         $purchaseItems = $warehouse->purchases->flatMap->items
             ->concat($warehouse->stockTransfers->flatMap->items);
         $saleItems = $warehouse->sales->flatMap->items;
@@ -499,6 +512,7 @@ class WarehouseController extends Controller
             $purchasePrice = (float) ($latestPurchase->purchase_price ?? 0);
             $salePrice = (float) ($latestPurchase->sale_price ?? 0);
             $purchaseAmount = $purchaseQty * $purchasePrice;
+            $soldAmount = (float) $productSales->sum('net_amount');
 
             return (object) [
                 'product' => $products->get($productId),
@@ -508,8 +522,8 @@ class WarehouseController extends Controller
                 'sold_qty' => $soldQty,
                 'available_qty' => max(0, $purchaseQty - $soldQty),
                 'purchase_amount' => $purchaseAmount,
-                'sale_amount' => $salePrice * $soldQty,
-                'profit' => ($salePrice - $purchasePrice) * $soldQty,
+                'sale_amount' => $soldAmount,
+                'profit' => $soldAmount - ($purchasePrice * $soldQty),
             ];
         })->filter(function ($row) {
             return $row->product !== null;
@@ -543,14 +557,13 @@ class WarehouseController extends Controller
         $periodSales = $warehouse->sales()
             ->with('items.product')
             ->whereBetween('sale_date', [$startDate, $endDate])
-            ->get();
+            ->get()
+            ->each($withNetAmounts);
         $periodSaleItems = $periodSales->flatMap->items;
 
         $salesByProduct = $periodSaleItems->groupBy('product_id')->map(function ($items, $productId) use ($products, $latestPurchasesByProduct) {
             $quantity = (float) $items->sum('quantity');
-            $salesAmount = (float) $items->sum(function ($item) {
-                return (float) $item->quantity * (float) $item->sale_price;
-            });
+            $salesAmount = (float) $items->sum('net_amount');
             $purchasePrice = (float) ($latestPurchasesByProduct->get($productId)->purchase_price ?? 0);
 
             return (object) [
