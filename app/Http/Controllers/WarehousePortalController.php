@@ -171,36 +171,64 @@ class WarehousePortalController extends Controller
         return view('warehouse-portal.dashboard', compact('warehouse', 'stock', 'todaySales', 'todaySaleAmount', 'todayCollectedAmount', 'todayDueAmount', 'isSalesman', 'portalSoldQuantity'));
     }
 
+    /** Stock of one LSP with the page filters applied; shared by the stock page and its exports. */
+    private function buildSalesmanStockPayload(Request $request, WarehouseSalesman $salesman): array
+    {
+        $search = trim((string) $request->query('search', ''));
+        $status = (string) $request->query('status', 'all');
+        $perPage = (string) $request->query('per_page', 'all');
+        if (!in_array($status, ['all', 'in', 'out'], true)) $status = 'all';
+        if (!in_array($perPage, ['all', '10', '25', '50', '100'], true)) $perPage = 'all';
+
+        $products = Product::query()->select('products.*')->active()->with('unit')->salesmanStock($salesman->id)
+            ->when($search !== '', fn ($query) => $query->where('products.product_name', 'like', '%' . $search . '%'))
+            ->orderBy('product_name')->get()->map(function ($product) {
+                $received = (float) ($product->salesman_assigned_qty ?? 0);
+                $sold = (float) ($product->salesman_sale_qty ?? 0);
+                $returned = (float) ($product->salesman_return_qty ?? 0);
+                $netReceived = max($received - $returned, 0);
+                $stock = max($netReceived - $sold, 0);
+                $product->warehouse_purchase_qty = $netReceived;
+                $product->warehouse_transfer_qty = 0;
+                $product->warehouse_sale_qty = $sold;
+                $product->warehouse_available_qty = $stock;
+                $product->salesman_stock_qty = $stock;
+                return $product;
+            });
+        if ($status === 'in') $products = $products->filter(fn ($product) => $product->salesman_stock_qty > 0)->values();
+        if ($status === 'out') $products = $products->filter(fn ($product) => $product->salesman_stock_qty <= 0)->values();
+        $summary = (object) [
+            'product_count' => $products->count(),
+            'received_qty' => $products->sum('warehouse_purchase_qty'),
+            'sold_qty' => $products->sum(fn ($p) => (float) $p->salesman_sale_qty),
+            'stock_qty' => $products->sum('salesman_stock_qty'),
+            'stock_value' => $products->sum(fn ($p) => (float) $p->selling_price * (float) $p->salesman_stock_qty),
+        ];
+
+        return [
+            'warehouse' => $salesman->warehouse,
+            'salesman' => $salesman,
+            'products' => $products,
+            'summary' => $summary,
+            'search' => $search,
+            'status' => $status,
+            'perPage' => $perPage,
+        ];
+    }
+
     public function stock(Request $request)
     {
         $portalUser = $this->currentPortalUser();
         if ($portalUser instanceof WarehouseSalesman) {
-            $warehouse = $portalUser->warehouse;
-            $search = trim((string) $request->query('search', ''));
-            $status = (string) $request->query('status', 'all');
-            $perPage = (string) $request->query('per_page', 'all');
-            if (!in_array($status, ['all', 'in', 'out'], true)) $status = 'all';
-            if (!in_array($perPage, ['all', '10', '25', '50', '100'], true)) $perPage = 'all';
-
-            $products = Product::query()->select('products.*')->active()->with('unit')->salesmanStock($portalUser->id)
-                ->when($search !== '', fn ($query) => $query->where('products.product_name', 'like', '%' . $search . '%'))
-                ->orderBy('product_name')->get()->map(function ($product) {
-                    $received = (float) ($product->salesman_assigned_qty ?? 0);
-                    $sold = (float) ($product->salesman_sale_qty ?? 0);
-                    $returned = (float) ($product->salesman_return_qty ?? 0);
-                    $netReceived = max($received - $returned, 0);
-                    $stock = max($netReceived - $sold, 0);
-                    $product->warehouse_purchase_qty = $netReceived;
-                    $product->warehouse_transfer_qty = 0;
-                    $product->warehouse_sale_qty = $sold;
-                    $product->warehouse_available_qty = $stock;
-                    $product->salesman_stock_qty = $stock;
-                    return $product;
-                });
-            if ($status === 'in') $products = $products->filter(fn ($product) => $product->salesman_stock_qty > 0)->values();
-            if ($status === 'out') $products = $products->filter(fn ($product) => $product->salesman_stock_qty <= 0)->values();
+            [
+                'warehouse' => $warehouse,
+                'products' => $products,
+                'summary' => $summary,
+                'search' => $search,
+                'status' => $status,
+                'perPage' => $perPage,
+            ] = $this->buildSalesmanStockPayload($request, $portalUser);
             $total = $products->count();
-            $summary = (object) ['product_count' => $total, 'received_qty' => $products->sum('warehouse_purchase_qty'), 'sold_qty' => $products->sum(fn ($p) => (float) $p->salesman_sale_qty), 'stock_qty' => $products->sum('salesman_stock_qty')];
             if ($perPage === 'all') {
                 $stock = new LengthAwarePaginator($products, $total, max($total, 1), 1, ['path' => $request->url(), 'query' => $request->query()]);
             } else {
@@ -744,8 +772,20 @@ class WarehousePortalController extends Controller
         ];
     }
 
+    /** The logged-in LSP, or null when an Area Office account is logged in. */
+    private function currentSalesman(): ?WarehouseSalesman
+    {
+        $portalUser = $this->currentPortalUser();
+
+        return $portalUser instanceof WarehouseSalesman ? $portalUser : null;
+    }
+
     public function stockPrint(Request $request)
     {
+        if ($salesman = $this->currentSalesman()) {
+            return view('warehouse-portal.stock-salesman-export', $this->buildSalesmanStockPayload($request, $salesman) + ['reportType' => 'print']);
+        }
+
         $this->ensureWarehouseAccount();
 
         return view('warehouse.stock-export', array_merge($this->buildWarehouseStockPayload($request, false), [
@@ -755,25 +795,39 @@ class WarehousePortalController extends Controller
 
     public function stockPdf(Request $request)
     {
-        $this->ensureWarehouseAccount();
-
-        $data = array_merge($this->buildWarehouseStockPayload($request, false), [
-            'reportType' => 'pdf',
-        ]);
+        if ($salesman = $this->currentSalesman()) {
+            $view = 'warehouse-portal.stock-salesman-export';
+            $data = $this->buildSalesmanStockPayload($request, $salesman) + ['reportType' => 'pdf'];
+            $filename = 'lsp-stock-report.pdf';
+        } else {
+            $this->ensureWarehouseAccount();
+            $view = 'warehouse.stock-export';
+            $data = array_merge($this->buildWarehouseStockPayload($request, false), [
+                'reportType' => 'pdf',
+            ]);
+            $filename = 'warehouse-stock-report.pdf';
+        }
 
         $dompdf = new \Dompdf\Dompdf();
-        $dompdf->loadHtml(view('warehouse.stock-export', $data)->render());
+        $dompdf->loadHtml(view($view, $data)->render());
         $dompdf->setPaper('A4', 'landscape');
         $dompdf->render();
 
         return response($dompdf->output(), 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="warehouse-stock-report.pdf"',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
     }
 
     public function stockExcel(Request $request)
     {
+        if ($salesman = $this->currentSalesman()) {
+            return \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\WarehouseSalesmanStockExport($this->buildSalesmanStockPayload($request, $salesman) + ['reportType' => 'excel']),
+                'lsp-stock-report.xlsx'
+            );
+        }
+
         $this->ensureWarehouseAccount();
 
         return \Maatwebsite\Excel\Facades\Excel::download(

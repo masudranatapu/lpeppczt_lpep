@@ -14,10 +14,10 @@
             description-class="mt-0.5 text-sm text-slate-600"
         />
 
-        @if(!($isSalesman ?? false))<div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-5">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-5">
             <div>
                 <p class="m-0 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Export</p>
-                <p class="m-0 mt-1 text-sm text-slate-600">Print or download the current stock snapshot.</p>
+                <p class="m-0 mt-1 text-sm text-slate-600">{{ ($isSalesman ?? false) ? 'Print or download your current stock.' : 'Print or download the current stock snapshot.' }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
                 <x-warehouse.button
@@ -47,7 +47,7 @@
                     Excel
                 </x-warehouse.button>
             </div>
-        </div>@endif
+        </div>
 
         @if(!($isSalesman ?? false))
         <div class="grid gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 sm:grid-cols-2 xl:grid-cols-4 sm:px-5">
