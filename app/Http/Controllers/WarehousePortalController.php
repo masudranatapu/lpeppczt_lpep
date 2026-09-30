@@ -1554,6 +1554,10 @@ class WarehousePortalController extends Controller
             return back()->withErrors(['file' => 'The file could not be imported. Please use the exported beneficiary Excel file or the template.']);
         }
 
+        if ($import->fatalError) {
+            return back()->withInput($request->only('salesman_id'))->withErrors(['file' => $import->fatalError]);
+        }
+
         return redirect()->route('warehouse.beneficiaries.import')
             ->with('import_report', $import->report + ['lsp' => $salesman->name]);
     }

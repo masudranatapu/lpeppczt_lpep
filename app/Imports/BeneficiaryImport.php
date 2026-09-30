@@ -32,6 +32,9 @@ class BeneficiaryImport implements ToCollection, WithHeadingRow
 
     public array $report = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => []];
 
+    /** Set when the whole file is rejected; nothing is imported then. */
+    public ?string $fatalError = null;
+
     /**
      * @param int   $agentUserId     users.id of the LSP the beneficiaries are assigned to
      * @param array $blockedAgentIds LSP user ids of other Area Offices; their beneficiaries are never moved
@@ -44,6 +47,12 @@ class BeneficiaryImport implements ToCollection, WithHeadingRow
 
     public function collection(Collection $rows)
     {
+        // Without the ID column every exported beneficiary would be created again as a copy.
+        if ($rows->isNotEmpty() && !array_key_exists('id', $rows->first()->toArray())) {
+            $this->fatalError = 'The ID column is missing. Keep the ID column of the exported file (leave it empty only for brand new beneficiaries). Nothing was imported.';
+            return;
+        }
+
         DB::transaction(function () use ($rows) {
             foreach ($rows as $index => $row) {
                 // Row 1 is the heading row.
@@ -121,15 +130,26 @@ class BeneficiaryImport implements ToCollection, WithHeadingRow
             return;
         }
 
+        // A changed ID must not move somebody else: the row has to match the person by name or mobile.
+        if ($existing && !$this->sameName($existing->name, $data['name']) && !$this->sameMobile($existing->mobile, $data['mobile'])) {
+            $this->skip($rowNumber, $row, "ID {$existing->id} belongs to {$existing->name} ({$existing->mobile}), not to this row. Check the ID.");
+            return;
+        }
+
+        // A row without an ID must not copy a beneficiary who already exists under any agent or LSP.
         if (!$existing) {
             $duplicate = AppCustomer::query()
-                ->where('agent_id', $this->agentUserId)
+                ->with('agent:id,name,employee_name')
                 ->where('mobile', $data['mobile'])
                 ->where('name', $data['name'])
-                ->value('id');
+                ->first(['id', 'agent_id']);
 
             if ($duplicate) {
-                $this->skip($rowNumber, $row, "Already exists for this LSP (ID {$duplicate}).");
+                $agent = $duplicate->agent;
+                $owner = $agent
+                    ? $agent->name . ($agent->employee_name && $agent->employee_name !== $agent->name ? " ({$agent->employee_name})" : '')
+                    : 'agent #' . $duplicate->agent_id;
+                $this->skip($rowNumber, $row, "Already exists as ID {$duplicate->id} under {$owner}. Keep the ID in the file to move this beneficiary instead of creating a copy.");
                 return;
             }
         }
@@ -190,6 +210,21 @@ class BeneficiaryImport implements ToCollection, WithHeadingRow
         }
 
         return $normalized;
+    }
+
+    private function sameName(?string $a, ?string $b): bool
+    {
+        $clean = fn ($value) => strtolower(preg_replace('/\s+/', ' ', trim((string) $value)));
+
+        return $clean($a) !== '' && $clean($a) === $clean($b);
+    }
+
+    private function sameMobile(?string $a, ?string $b): bool
+    {
+        // Compare the last 10 digits so 017..., 17... and +88017... are the same number.
+        $digits = fn ($value) => substr(preg_replace('/\D/', '', (string) $value), -10);
+
+        return $digits($a) !== '' && $digits($a) === $digits($b);
     }
 
     private function isEmpty(array $row): bool

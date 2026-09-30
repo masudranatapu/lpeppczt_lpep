@@ -67,7 +67,8 @@
                     <p class="m-0 font-bold text-slate-800">How the import works</p>
                     <ul class="mb-0 mt-2 list-disc space-y-1 pl-5">
                         <li>A row with an existing <strong>ID</strong> updates that beneficiary and moves it to the selected LSP. Its farms, cattle, calves, sales and visit history stay linked.</li>
-                        <li>A row without an ID creates a new beneficiary. A beneficiary with the same name and mobile already under this LSP is skipped.</li>
+                        <li><strong>Never delete or change the ID column.</strong> A file without the ID column is rejected. A row whose ID belongs to a different person (name and mobile both differ) is skipped.</li>
+                        <li>A row with an empty ID creates a new beneficiary, unless someone with the same name and mobile already exists under any agent or LSP; that row is skipped so no copy is made.</li>
                         <li>Name and Mobile are always required. New beneficiaries also need Beneficiary Number (1–40) and Group Number (1–28).</li>
                         <li>A group can have at most 40 members per LSP; extra rows are skipped.</li>
                         <li>The Agent ID and Agent Name columns are ignored.</li>

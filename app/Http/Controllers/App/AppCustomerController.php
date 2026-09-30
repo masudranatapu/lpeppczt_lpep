@@ -146,7 +146,7 @@ class AppCustomerController extends Controller
             // 'feed' => 'nullable',
             'village' => 'nullable',
             'union' => 'nullable',
-            
+
         ]);
 
         $check40 = AppCustomer::where('agent_id',$request->agent_id)
@@ -175,7 +175,7 @@ class AppCustomerController extends Controller
             'treatment' => $request->treatment ?? null,
             'ai' => $request->ai ?? null,
             'medicine' => $request->medicine ?? null,
-            // 'feed' => $request->feed ?? null,  
+            // 'feed' => $request->feed ?? null,
             'date' => date('Y-m-d'),
             'created_by' => auth()->id(),
             'village' => $request->village ?? null,
@@ -232,7 +232,7 @@ class AppCustomerController extends Controller
     {
         try {
             $customer = AppCustomer::with('farms')->find($id);
-            
+
             if (!$customer) {
                 return response()->json("Customer not found", 404);
             }
@@ -244,7 +244,7 @@ class AppCustomerController extends Controller
 
             // Then delete the customer
             $customer->delete();
-            
+
             return response()->json("Successfully deleted");
         } catch (\Exception $e) {
             \Log::error($e->getMessage());
