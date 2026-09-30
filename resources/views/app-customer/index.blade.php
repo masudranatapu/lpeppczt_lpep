@@ -59,7 +59,9 @@
                         <select class="form-control" id="agent_filter" name="agent_id">
                             <option value="">Select Agent</option>
                             @foreach($agents as $agent)
-                                <option value="{{ $agent->id }}" {{ (string) request('agent_id') === (string) $agent->id ? 'selected' : '' }}>{{ $agent->employee_name }}</option>
+                                <option value="{{ $agent->id }}" {{ (string) request('agent_id') === (string) $agent->id ? 'selected' : '' }}>
+                                    {{ $agent->employee_name ?? $agent->name }}
+                                </option>
                             @endforeach
                         </select>
                     </div>

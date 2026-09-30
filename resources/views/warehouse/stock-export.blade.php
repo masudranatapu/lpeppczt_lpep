@@ -107,31 +107,50 @@
     @php
         $rows = $products ?? $stock ?? collect();
     @endphp
-    <div class="header">
-        <div class="header-left">
-            <h1>{{ $reportTitle ?? 'Area Office Stock' }}</h1>
-            <strong>{{ $warehouseLabel ?? 'All Area Offices' }}</strong>
-            <div class="muted">
-                {{ $salesmanLabel ?? 'All LSPs' }}
-                @if(!empty($search))
-                    <br>Product: {{ $search }}
-                @endif
+    @if (($reportType ?? 'print') === 'excel')
+        {{-- Excel keeps only table cells, so the owner and summary are plain rows here. --}}
+        <table>
+            <tr><th colspan="12">{{ $reportTitle ?? 'Area Office Stock' }}</th></tr>
+            <tr><td colspan="2"><strong>Area Office</strong></td><td colspan="10">{{ $warehouseLabel ?? 'All Area Offices' }}</td></tr>
+            <tr><td colspan="2"><strong>LSP</strong></td><td colspan="10">{{ $salesmanLabel ?? 'All LSPs' }}</td></tr>
+            <tr><td colspan="2"><strong>Generated</strong></td><td colspan="10">{{ now()->format('d M Y h:i A') }}</td></tr>
+            @if(!empty($search))
+                <tr><td colspan="2"><strong>Product filter</strong></td><td colspan="10">{{ $search }}</td></tr>
+            @endif
+            <tr><td colspan="12"></td></tr>
+            <tr><td colspan="2"><strong>Products</strong></td><td colspan="10">{{ (float) ($summary->product_count ?? 0) }}</td></tr>
+            <tr><td colspan="2"><strong>Area Office Received</strong></td><td colspan="10">{{ (float) ($summary->received_qty ?? 0) }}</td></tr>
+            <tr><td colspan="2"><strong>LSP Sold</strong></td><td colspan="10">{{ (float) ($summary->lsp_sale_qty ?? 0) }}</td></tr>
+            <tr><td colspan="2"><strong>Total Remaining</strong></td><td colspan="10">{{ (float) ($summary->total_remaining_qty ?? 0) }}</td></tr>
+            <tr><td colspan="12"></td></tr>
+        </table>
+    @else
+        <div class="header">
+            <div class="header-left">
+                <h1>{{ $reportTitle ?? 'Area Office Stock' }}</h1>
+                <strong>{{ $warehouseLabel ?? 'All Area Offices' }}</strong>
+                <div class="muted">
+                    {{ $salesmanLabel ?? 'All LSPs' }}
+                    @if(!empty($search))
+                        <br>Product: {{ $search }}
+                    @endif
+                </div>
+            </div>
+            <div class="header-right">
+                <strong>{{ now()->format('d M Y h:i A') }}</strong>
+                <div class="muted">Generated report</div>
             </div>
         </div>
-        <div class="header-right">
-            <strong>{{ now()->format('d M Y h:i A') }}</strong>
-            <div class="muted">Generated report</div>
-        </div>
-    </div>
 
-    <table class="summary">
-        <tr>
-            <td><div class="summary-label">Products</div><div class="summary-value">{{ number_format((float) ($summary->product_count ?? 0), 0) }}</div></td>
-            <td><div class="summary-label">Area Office Received</div><div class="summary-value">{{ number_format((float) ($summary->received_qty ?? 0), 2) }}</div></td>
-            <td><div class="summary-label">LSP Sold</div><div class="summary-value">{{ number_format((float) ($summary->lsp_sale_qty ?? 0), 2) }}</div></td>
-            <td><div class="summary-label">Total Remaining</div><div class="summary-value">{{ number_format((float) ($summary->total_remaining_qty ?? 0), 2) }}</div></td>
-        </tr>
-    </table>
+        <table class="summary">
+            <tr>
+                <td><div class="summary-label">Products</div><div class="summary-value">{{ number_format((float) ($summary->product_count ?? 0), 0) }}</div></td>
+                <td><div class="summary-label">Area Office Received</div><div class="summary-value">{{ number_format((float) ($summary->received_qty ?? 0), 2) }}</div></td>
+                <td><div class="summary-label">LSP Sold</div><div class="summary-value">{{ number_format((float) ($summary->lsp_sale_qty ?? 0), 2) }}</div></td>
+                <td><div class="summary-label">Total Remaining</div><div class="summary-value">{{ number_format((float) ($summary->total_remaining_qty ?? 0), 2) }}</div></td>
+            </tr>
+        </table>
+    @endif
 
     <table class="report-table">
         <thead>

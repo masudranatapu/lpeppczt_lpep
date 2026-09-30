@@ -780,6 +780,12 @@ class WarehousePortalController extends Controller
         return $portalUser instanceof WarehouseSalesman ? $portalUser : null;
     }
 
+    /** e.g. lsp-stock-report-arafat-2026-09-30.pdf, so a saved file shows whose stock it is. */
+    private function salesmanStockFilename(WarehouseSalesman $salesman, string $extension): string
+    {
+        return 'lsp-stock-report-' . (Str::slug($salesman->name) ?: 'lsp-' . $salesman->id) . '-' . now()->format('Y-m-d') . '.' . $extension;
+    }
+
     public function stockPrint(Request $request)
     {
         if ($salesman = $this->currentSalesman()) {
@@ -798,7 +804,7 @@ class WarehousePortalController extends Controller
         if ($salesman = $this->currentSalesman()) {
             $view = 'warehouse-portal.stock-salesman-export';
             $data = $this->buildSalesmanStockPayload($request, $salesman) + ['reportType' => 'pdf'];
-            $filename = 'lsp-stock-report.pdf';
+            $filename = $this->salesmanStockFilename($salesman, 'pdf');
         } else {
             $this->ensureWarehouseAccount();
             $view = 'warehouse.stock-export';
@@ -824,7 +830,7 @@ class WarehousePortalController extends Controller
         if ($salesman = $this->currentSalesman()) {
             return \Maatwebsite\Excel\Facades\Excel::download(
                 new \App\Exports\WarehouseSalesmanStockExport($this->buildSalesmanStockPayload($request, $salesman) + ['reportType' => 'excel']),
-                'lsp-stock-report.xlsx'
+                $this->salesmanStockFilename($salesman, 'xlsx')
             );
         }
 

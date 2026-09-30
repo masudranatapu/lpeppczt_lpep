@@ -18,7 +18,7 @@ class WarehouseStockExport implements FromView, ShouldAutoSize, WithTitle
 
     public function view(): View
     {
-        return view('warehouse.stock-export', $this->data);
+        return view('warehouse.stock-export', ['reportType' => 'excel'] + $this->data);
     }
 
     public function title(): string
