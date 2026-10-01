@@ -1401,7 +1401,7 @@ class WarehousePortalController extends Controller
         $salesmanId = (int) $request->query('salesman_id', 0);
         $perPage = (string) $request->query('per_page', '10');
         if (!in_array($perPage, ['10', '25', '50', '100', 'all'], true)) $perPage = '10';
-        $customerQuery = AppCustomer::query()->whereIn('agent_id', $salesmanUserIds)
+        $customerQuery = AppCustomer::query()->with(['importedFrom:id,agent_id', 'importedFrom.agent:id,name,employee_name'])->whereIn('agent_id', $salesmanUserIds)
             ->when($salesmanId > 0, fn ($query) => $query->where('agent_id', $salesmanId))
             ->when($beneficiaryNumber !== '', fn ($query) => $query->where('beneficiary_number', 'like', "%{$beneficiaryNumber}%"))
             ->when($groupNumber !== '', fn ($query) => $query->where('group_number', $groupNumber))
@@ -1542,25 +1542,15 @@ class WarehousePortalController extends Controller
             return back()->withErrors(['salesman_id' => 'Select a valid LSP for this Area Office.']);
         }
 
-        // Beneficiaries of LSPs in other Area Offices must never be moved here.
-        $otherOfficeAgentIds = WarehouseSalesman::query()
-            ->where('warehouse_id', '!=', $warehouse->id)
-            ->whereNotNull('user_id')
-            ->pluck('user_id')
-            ->all();
-
         set_time_limit(300);
-        $import = new BeneficiaryImport((int) $salesman->user_id, $otherOfficeAgentIds);
+        // Creates copies for this LSP; the original beneficiaries keep their owner.
+        $import = new BeneficiaryImport((int) $salesman->user_id);
 
         try {
             Excel::import($import, $request->file('file'));
         } catch (\Throwable $exception) {
             report($exception);
             return back()->withErrors(['file' => 'The file could not be imported. Please use the exported beneficiary Excel file or the template.']);
-        }
-
-        if ($import->fatalError) {
-            return back()->withInput($request->only('salesman_id'))->withErrors(['file' => $import->fatalError]);
         }
 
         return redirect()->route('warehouse.beneficiaries.import')

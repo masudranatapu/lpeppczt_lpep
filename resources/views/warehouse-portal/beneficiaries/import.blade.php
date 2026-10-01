@@ -5,9 +5,8 @@
                 <div class="border-b border-slate-200 px-5 py-4 sm:px-7">
                     <h2 class="m-0 text-base font-extrabold text-slate-900">Import Result @if(!empty($report['lsp']))<span class="font-semibold text-slate-500">— {{ $report['lsp'] }}</span>@endif</h2>
                 </div>
-                <div class="grid gap-4 p-5 sm:grid-cols-3 sm:px-7">
-                    <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3"><div class="text-xs font-bold uppercase tracking-wide text-emerald-700">New</div><div class="mt-1 text-2xl font-extrabold text-emerald-800">{{ $report['created'] }}</div></div>
-                    <div class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3"><div class="text-xs font-bold uppercase tracking-wide text-sky-700">Updated / Moved</div><div class="mt-1 text-2xl font-extrabold text-sky-800">{{ $report['updated'] }}</div></div>
+                <div class="grid gap-4 p-5 sm:grid-cols-2 sm:px-7">
+                    <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3"><div class="text-xs font-bold uppercase tracking-wide text-emerald-700">Added (copied)</div><div class="mt-1 text-2xl font-extrabold text-emerald-800">{{ $report['created'] }}</div></div>
                     <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3"><div class="text-xs font-bold uppercase tracking-wide text-amber-700">Skipped</div><div class="mt-1 text-2xl font-extrabold text-amber-800">{{ $report['skipped'] }}</div></div>
                 </div>
                 @if(count($report['errors']))
@@ -66,10 +65,10 @@
                 <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm text-slate-600">
                     <p class="m-0 font-bold text-slate-800">How the import works</p>
                     <ul class="mb-0 mt-2 list-disc space-y-1 pl-5">
-                        <li>A row with an existing <strong>ID</strong> updates that beneficiary and moves it to the selected LSP. Its farms, cattle, calves, sales and visit history stay linked.</li>
-                        <li><strong>Never delete or change the ID column.</strong> A file without the ID column is rejected. A row whose ID belongs to a different person (name and mobile both differ) is skipped.</li>
-                        <li>A row with an empty ID creates a new beneficiary, unless someone with the same name and mobile already exists under any agent or LSP; that row is skipped so no copy is made.</li>
-                        <li>Name and Mobile are always required. New beneficiaries also need Beneficiary Number (1–40) and Group Number (1–28).</li>
+                        <li>Every row is <strong>added as a new beneficiary</strong> (a copy) under the {{ $isSalesman ? 'your account' : 'selected LSP' }}. The original beneficiary stays with its current agent or LSP and is not changed.</li>
+                        <li>Imported beneficiaries are marked with an <strong>Imported</strong> badge in the beneficiary list. The ID column is used only to remember where the copy came from.</li>
+                        <li>A row is skipped when the same person (same original ID, or same name and mobile) is already under {{ $isSalesman ? 'your account' : 'that LSP' }}, so importing the same file twice does not double it.</li>
+                        <li>Name and Mobile are required. Farms, cattle, sales and visit history stay with the original beneficiary.</li>
                         <li>A group can have at most 40 members per LSP; extra rows are skipped.</li>
                         <li>The Agent ID and Agent Name columns are ignored.</li>
                     </ul>

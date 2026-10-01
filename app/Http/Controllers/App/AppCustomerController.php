@@ -51,7 +51,7 @@ class AppCustomerController extends Controller
         $baseQuery = $this->filteredQuery($request);
         $totals = $this->livestockTotals($baseQuery);
         $query = (clone $baseQuery)
-            ->with(['createdBy:id,name', 'updatedBy:id,name'])
+            ->with(['createdBy:id,name', 'updatedBy:id,name', 'importedFrom:id,agent_id', 'importedFrom.agent:id,name,employee_name'])
             ->orderByDesc('id');
 
         // Still served as DataTables JSON for the app-bioenergy page, which reuses this endpoint.

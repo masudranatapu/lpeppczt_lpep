@@ -14,9 +14,11 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 /**
  * Imports the file produced by App\Exports\AppCustomerExport into one LSP.
  *
- * A row whose ID matches an existing beneficiary updates that record and
- * moves it to the LSP, so its farms, cattle, sales and visits stay linked.
- * A row without a matching ID creates a new beneficiary.
+ * Every row creates a NEW beneficiary (a copy) under the chosen LSP; the
+ * original beneficiary and its owner are never changed. The copy is flagged
+ * with imported_at and, when the row has the original ID, imported_from_id.
+ * A row is skipped when the same person is already under that LSP, so
+ * importing the same file twice does not double it.
  */
 class BeneficiaryImport implements ToCollection, WithHeadingRow
 {
@@ -28,31 +30,19 @@ class BeneficiaryImport implements ToCollection, WithHeadingRow
     private const LIVESTOCK_FIELDS = ['cow', 'bull', 'bakna', 'goat', 'khasi'];
 
     private int $agentUserId;
-    private array $blockedAgentIds;
 
-    public array $report = ['created' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => []];
-
-    /** Set when the whole file is rejected; nothing is imported then. */
-    public ?string $fatalError = null;
+    public array $report = ['created' => 0, 'skipped' => 0, 'errors' => []];
 
     /**
-     * @param int   $agentUserId     users.id of the LSP the beneficiaries are assigned to
-     * @param array $blockedAgentIds LSP user ids of other Area Offices; their beneficiaries are never moved
+     * @param int $agentUserId users.id of the LSP the copies are created for
      */
-    public function __construct(int $agentUserId, array $blockedAgentIds = [])
+    public function __construct(int $agentUserId)
     {
         $this->agentUserId = $agentUserId;
-        $this->blockedAgentIds = array_map('intval', $blockedAgentIds);
     }
 
     public function collection(Collection $rows)
     {
-        // Without the ID column every exported beneficiary would be created again as a copy.
-        if ($rows->isNotEmpty() && !array_key_exists('id', $rows->first()->toArray())) {
-            $this->fatalError = 'The ID column is missing. Keep the ID column of the exported file (leave it empty only for brand new beneficiaries). Nothing was imported.';
-            return;
-        }
-
         DB::transaction(function () use ($rows) {
             foreach ($rows as $index => $row) {
                 // Row 1 is the heading row.
@@ -69,21 +59,14 @@ class BeneficiaryImport implements ToCollection, WithHeadingRow
             return;
         }
 
-        if ($row['id'] !== null && !is_int($row['id'])) {
-            $this->skip($rowNumber, $row, 'The ID must be a number.');
-            return;
-        }
-
-        $existing = $row['id'] ? AppCustomer::query()->find($row['id']) : null;
-
-        // Older beneficiaries often have no (or out of range) beneficiary/group
-        // numbers, so those are only enforced for new beneficiaries.
+        // Older beneficiaries often have no (or unusual) beneficiary/group numbers,
+        // so those are copied as they are; only name and mobile are required.
         $validator = Validator::make($row, [
             'name' => ['required', 'string', 'max:255'],
             'mobile' => ['required', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
-            'beneficiary_number' => $existing ? ['nullable', 'integer', 'min:0'] : ['required', 'integer', 'between:1,40'],
-            'group_number' => $existing ? ['nullable', 'integer', 'min:0'] : ['required', 'integer', 'between:1,28'],
+            'beneficiary_number' => ['nullable', 'integer', 'min:0'],
+            'group_number' => ['nullable', 'integer', 'min:0'],
             'village' => ['nullable', 'string', 'max:255'],
             'union' => ['nullable', 'string', 'max:255'],
             'cow' => ['nullable', 'integer', 'min:0'],
@@ -125,49 +108,31 @@ class BeneficiaryImport implements ToCollection, WithHeadingRow
             $data[$field] = $row[$field] ?? 0;
         }
 
-        if ($existing && in_array((int) $existing->agent_id, $this->blockedAgentIds, true)) {
-            $this->skip($rowNumber, $row, "Beneficiary ID {$existing->id} belongs to another Area Office.");
+        // The ID column only records where the copy came from; the original is not touched.
+        $sourceId = is_int($row['id']) && AppCustomer::query()->whereKey($row['id'])->exists() ? $row['id'] : null;
+
+        $alreadyHere = AppCustomer::query()
+            ->where('agent_id', $this->agentUserId)
+            ->where(function ($query) use ($sourceId, $data) {
+                $query->where(fn ($same) => $same->where('name', $data['name'])->where('mobile', $data['mobile']));
+                if ($sourceId) {
+                    $query->orWhere('imported_from_id', $sourceId)->orWhere('id', $sourceId);
+                }
+            })
+            ->value('id');
+
+        if ($alreadyHere) {
+            $this->skip($rowNumber, $row, "Already under this LSP (ID {$alreadyHere}).");
             return;
-        }
-
-        // A changed ID must not move somebody else: the row has to match the person by name or mobile.
-        if ($existing && !$this->sameName($existing->name, $data['name']) && !$this->sameMobile($existing->mobile, $data['mobile'])) {
-            $this->skip($rowNumber, $row, "ID {$existing->id} belongs to {$existing->name} ({$existing->mobile}), not to this row. Check the ID.");
-            return;
-        }
-
-        // A row without an ID must not copy a beneficiary who already exists under any agent or LSP.
-        if (!$existing) {
-            $duplicate = AppCustomer::query()
-                ->with('agent:id,name,employee_name')
-                ->where('mobile', $data['mobile'])
-                ->where('name', $data['name'])
-                ->first(['id', 'agent_id']);
-
-            if ($duplicate) {
-                $agent = $duplicate->agent;
-                $owner = $agent
-                    ? $agent->name . ($agent->employee_name && $agent->employee_name !== $agent->name ? " ({$agent->employee_name})" : '')
-                    : 'agent #' . $duplicate->agent_id;
-                $this->skip($rowNumber, $row, "Already exists as ID {$duplicate->id} under {$owner}. Keep the ID in the file to move this beneficiary instead of creating a copy.");
-                return;
-            }
         }
 
         $groupCount = $data['group_number'] === null ? 0 : AppCustomer::query()
             ->where('agent_id', $this->agentUserId)
             ->where('group_number', $data['group_number'])
-            ->when($existing, fn ($query) => $query->whereKeyNot($existing->id))
             ->count();
 
         if ($groupCount >= self::GROUP_LIMIT) {
             $this->skip($rowNumber, $row, "Group {$data['group_number']} already has " . self::GROUP_LIMIT . ' members.');
-            return;
-        }
-
-        if ($existing) {
-            $existing->update($data + ['agent_id' => $this->agentUserId, 'updated_by' => $this->agentUserId]);
-            $this->report['updated']++;
             return;
         }
 
@@ -176,6 +141,8 @@ class BeneficiaryImport implements ToCollection, WithHeadingRow
             'password' => Hash::make(Str::random(20)),
             'date' => now()->toDateString(),
             'created_by' => $this->agentUserId,
+            'imported_from_id' => $sourceId,
+            'imported_at' => now(),
         ]);
         $this->report['created']++;
     }
@@ -210,21 +177,6 @@ class BeneficiaryImport implements ToCollection, WithHeadingRow
         }
 
         return $normalized;
-    }
-
-    private function sameName(?string $a, ?string $b): bool
-    {
-        $clean = fn ($value) => strtolower(preg_replace('/\s+/', ' ', trim((string) $value)));
-
-        return $clean($a) !== '' && $clean($a) === $clean($b);
-    }
-
-    private function sameMobile(?string $a, ?string $b): bool
-    {
-        // Compare the last 10 digits so 017..., 17... and +88017... are the same number.
-        $digits = fn ($value) => substr(preg_replace('/\D/', '', (string) $value), -10);
-
-        return $digits($a) !== '' && $digits($a) === $digits($b);
     }
 
     private function isEmpty(array $row): bool

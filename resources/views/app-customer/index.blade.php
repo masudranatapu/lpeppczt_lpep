@@ -154,7 +154,7 @@
                                 <td><input type="checkbox" class="row-check" value="{{ $customer->id }}"></td>
                                 <td>{{ method_exists($customers, 'firstItem') ? $customers->firstItem() + $loop->index : $loop->iteration }}</td>
                                 <td>{{ $customer->mobile }}</td>
-                                <td>{{ $customer->name }}</td>
+                                <td>{{ $customer->name }}@if($customer->imported_at) <span class="badge badge-info" title="{{ $customer->importNote() }}" style="cursor: help;">Imported</span>@endif</td>
                                 <td>{{ $customer->beneficiary_number }}</td>
                                 <td>{{ $customer->group_number }}</td>
                                 <td>{{ $customer->village }}</td>
