@@ -350,7 +350,19 @@ class WarehouseController extends Controller
             'search' => $search,
             'perPage' => $perPage,
             'summary' => $summary,
+            // Shown at the top of the print / PDF / Excel so the file says whose stock it is.
+            'warehouseLabel' => $this->stockWarehouseLabel($warehouseOptions->firstWhere('id', $warehouseId)),
+            'salesmanLabel' => $selectedSalesman ? 'LSP: ' . $selectedSalesman->name : 'All LSPs',
         ];
+    }
+
+    private function stockWarehouseLabel(?Warehouse $warehouse): string
+    {
+        if (! $warehouse) {
+            return 'All Area Offices';
+        }
+
+        return $warehouse->name . ($warehouse->code ? ' (' . $warehouse->code . ')' : '');
     }
 
     public function stockOverviewPrint(Request $request)

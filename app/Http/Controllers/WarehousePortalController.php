@@ -702,7 +702,9 @@ class WarehousePortalController extends Controller
             ->sum('sale_items.quantity'), 0);
         $summary->office_stock_qty = (float) ($summary->warehouse_available_qty ?? 0);
         $summary->lsp_stock_qty = (float) ($summary->salesman_stock_qty ?? 0);
-        $summary->total_remaining_qty = (float) ($summary->company_stock_qty ?? 0);
+        $summary->total_remaining_qty = $salesmanId > 0
+            ? $summary->lsp_stock_qty
+            : (float) ($summary->company_stock_qty ?? 0);
 
         $stockQuery = $stockQuery
             ->select('products.*')
@@ -723,7 +725,7 @@ class WarehousePortalController extends Controller
             ->orderByRaw('GREATEST(' . $warehouseAvailableExpr . ', 0) DESC')
             ->orderBy('products.product_name');
 
-        $formatProduct = function ($product) {
+        $formatProduct = function ($product) use ($salesmanId) {
             $receivedQty = (float) ($product->warehouse_purchase_qty ?? 0) + (float) ($product->warehouse_transfer_qty ?? 0);
             $lspSaleQty = (float) ($product->warehouse_sale_qty ?? 0) - (float) ($product->warehouse_direct_sale_qty ?? 0);
             $product->received_qty = round($receivedQty, 2);
@@ -733,7 +735,10 @@ class WarehousePortalController extends Controller
             $product->lsp_sale_qty = round(max($lspSaleQty, 0), 2);
             $product->office_stock_qty = round((float) ($product->warehouse_available_qty ?? 0), 2);
             $product->lsp_stock_qty = round((float) ($product->salesman_stock_qty ?? 0), 2);
-            $product->total_remaining_qty = round((float) ($product->company_stock_qty ?? 0), 2);
+            // As in the admin Stock Summary: with an LSP selected, the remaining stock is that LSP's stock.
+            $product->total_remaining_qty = $salesmanId > 0
+                ? $product->lsp_stock_qty
+                : round((float) ($product->company_stock_qty ?? 0), 2);
             $product->in_qty = round((float) ($product->warehouse_transfer_qty ?? 0) + (float) ($product->warehouse_return_qty ?? 0), 2);
             $product->out_qty = round((float) ($product->warehouse_direct_sale_qty ?? 0) + (float) ($product->warehouse_assigned_qty ?? 0), 2);
             $product->stock_qty = round((float) ($product->warehouse_available_qty ?? 0), 2);
@@ -768,7 +773,7 @@ class WarehousePortalController extends Controller
             'salesmen' => $salesmen,
             'reportTitle' => 'Area Office Stock',
             'warehouseLabel' => $warehouse->name . ($warehouse->code ? ' (' . $warehouse->code . ')' : ''),
-            'salesmanLabel' => 'All LSPs',
+            'salesmanLabel' => $salesmanId > 0 ? 'LSP: ' . ($salesmen->firstWhere('id', $salesmanId)?->name ?? '#' . $salesmanId) : 'All LSPs',
         ];
     }
 

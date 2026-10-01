@@ -3,7 +3,7 @@
         $totalPurchaseQty = $stock->sum(fn ($product) => (float) ($product->warehouse_purchase_qty ?? 0) + (float) ($product->warehouse_transfer_qty ?? 0));
         $totalWarehouseAvailable = $stock->sum(fn ($product) => (float) ($product->warehouse_available_qty ?? 0));
         $totalSalesmanStock = $stock->sum(fn ($product) => (float) ($product->salesman_stock_qty ?? 0));
-        $exportQuery = request()->only(['search', 'status', 'per_page']);
+        $exportQuery = array_filter(request()->only(['search', 'status', 'per_page', 'salesman_id']), fn ($value) => $value !== null && $value !== '');
     @endphp
     <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <x-warehouse.page-header
@@ -21,7 +21,7 @@
             </div>
             <div class="flex flex-wrap gap-2">
                 <x-warehouse.button
-                    href="{{ route('warehouse.stock.print', $exportQuery) }}"
+                    :href="route('warehouse.stock.print', $exportQuery)"
                     target="_blank"
                     rel="noopener"
                     variant="secondary"
@@ -31,7 +31,7 @@
                     Print
                 </x-warehouse.button>
                 <x-warehouse.button
-                    href="{{ route('warehouse.stock.pdf', $exportQuery) }}"
+                    :href="route('warehouse.stock.pdf', $exportQuery)"
                     variant="outline"
                     icon="file-text"
                     class="h-10 px-4"
@@ -39,7 +39,7 @@
                     PDF
                 </x-warehouse.button>
                 <x-warehouse.button
-                    href="{{ route('warehouse.stock.excel', $exportQuery) }}"
+                    :href="route('warehouse.stock.excel', $exportQuery)"
                     variant="success"
                     icon="file-down"
                     class="h-10 px-4"
@@ -188,7 +188,8 @@
                     @if($isSalesman ?? false)
                         <x-warehouse.table.td padding-class="px-4 py-1.5 sm:px-5">{{ number_format((float) $product->selling_price * $salesmanStock, 2) }}</x-warehouse.table.td>
                     @else
-                        <x-warehouse.table.td padding-class="px-4 py-1.5 sm:px-5">{{ number_format((float) $product->selling_price * $salesmanStock, 2) }}</x-warehouse.table.td>
+                        {{-- Same as the admin Stock Summary and the exports: selling price x total remaining (office + LSP stock). --}}
+                        <x-warehouse.table.td padding-class="px-4 py-1.5 sm:px-5">{{ number_format((float) ($product->stock_sale_price ?? 0), 2) }}</x-warehouse.table.td>
                     @endif
                     @if(!($isSalesman ?? false))<x-warehouse.table.td padding-class="px-4 py-1.5 sm:px-5">
                         <a href="{{ route('warehouse.stock.lsp-distribution', $product) }}" title="View LSP stock distribution" aria-label="View LSP stock distribution" class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 text-sky-700 shadow-sm transition hover:border-sky-300 hover:bg-sky-100 hover:text-sky-800">
@@ -213,7 +214,9 @@
                 $officeAvailableTotal = $stockRows->sum(fn ($product) => (float) ($product->warehouse_available_qty ?? 0));
                 $stockTotal = $stockRows->sum(fn ($product) => (float) ($product->salesman_stock_qty ?? 0));
                 $soldTotal = $stockRows->sum(fn ($product) => (float) ($product->salesman_sale_qty ?? ((float) ($product->warehouse_sale_qty ?? 0) - (float) ($product->warehouse_direct_sale_qty ?? 0))));
-                $sellingTotal = $stockRows->sum(fn ($product) => (float) ($product->selling_price ?? 0) * (float) ($product->salesman_stock_qty ?? 0));
+                $sellingTotal = ($isSalesman ?? false)
+                    ? $stockRows->sum(fn ($product) => (float) ($product->selling_price ?? 0) * (float) ($product->salesman_stock_qty ?? 0))
+                    : $stockRows->sum(fn ($product) => (float) ($product->stock_sale_price ?? 0));
             @endphp
             <tfoot class="border-t-2 border-slate-300 bg-slate-100 font-extrabold text-slate-900">
                 <tr>
