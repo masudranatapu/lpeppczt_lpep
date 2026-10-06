@@ -1296,7 +1296,7 @@ class WarehousePortalController extends Controller
             'customer_number' => ['nullable', 'string', 'max:100'],
             'visit_type' => ['required', 'string', 'max:50'],
             'memo_no' => ['nullable', 'string', 'max:255'],
-            'attachment' => ['nullable', 'file', 'max:5120', 'mimes:jpg,jpeg,png,pdf,doc,docx'],
+            'attachment' => ['nullable', 'file', 'max:15360', 'mimes:jpg,jpeg,png,pdf,doc,docx'],
             'description' => ['nullable', 'string', 'max:1000'],
             'items' => ['nullable', 'array'],
             'items.*.product' => ['nullable', 'string', 'max:255'],
